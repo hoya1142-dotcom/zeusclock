@@ -31,7 +31,7 @@
 <div class="wrap">
 <header class="top">
   <div class="brand"><div class="logo">Z</div><div><div class="eyebrow">OMAN · THE GOD</div><h1>ZEUS BOSS CLOCK</h1></div></div>
-  <div class="top-actions"><span class="status"><i class="dot" id="connectionDot"></i><span id="connectionText">로컬 미리보기</span></span><button class="btn ghost" id="soundBtn">🔔 알림 켜기</button><button class="btn" id="settingsBtn">⚙ 설정</button></div>
+  <div class="top-actions"><span class="status"><i class="dot" id="connectionDot"></i><span id="connectionText">로컬 미리보기</span></span><button class="btn ghost" id="soundBtn">🔔 알림 켜기</button></div>
 </header>
 
 <section class="hero">
@@ -57,7 +57,7 @@
 </div>
 
 <div class="modal-back" id="modalBack"><div class="modal"><h3 id="modalTitle">보스 시간 설정</h3><p id="modalDesc">게임에서 확인한 다음 출현 시각을 입력하세요. 입력한 시간은 모든 접속자에게 공유됩니다.</p><div class="field"><label>보스</label><input id="modalBoss" disabled></div><div class="field"><label>다음 출현 예정 시각</label><input type="datetime-local" id="modalTime"></div><div class="modal-actions"><button class="btn" id="cancelModal">취소</button><button class="btn primary" id="saveModal">저장</button></div></div></div>
-<div class="modal-back" id="settingsBack"><div class="modal"><h3>연결 설정</h3><p>여러 사람과 시간을 공유하려면 Supabase 프로젝트의 URL과 anon key를 입력해야 합니다. 이 값은 브라우저에 저장되며 service_role 키는 절대 입력하지 마세요.</p><div class="field"><label>Supabase Project URL</label><input id="sbUrl" placeholder="https://xxxx.supabase.co"></div><div class="field"><label>Supabase anon / publishable key</label><input id="sbKey" placeholder="eyJ... 또는 sb_publishable_..."></div><div class="modal-actions"><button class="btn" id="closeSettings">닫기</button><button class="btn primary" id="connectBtn">연결하기</button></div></div></div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -85,7 +85,7 @@ const BOSSES = [
 ];
 const defaults = Object.fromEntries(BOSSES.map(b=>[b.id,null]));
 let states = {...defaults,...JSON.parse(localStorage.getItem("zeus-boss-states")||"{}")};
-let filter="전체", supabaseClient=null, channel=null, activeBoss=null, soundOn=false;
+const SUPABASE_URL="https://wpeqlhkidhtyrncixmxd.supabase.co", SUPABASE_KEY="sb_publishable_6ze3q32jYfJboSCeAkK1oQ_MaQYpehf";\nlet filter="전체", supabaseClient=null, channel=null, activeBoss=null, soundOn=false;
 
 const $=id=>document.getElementById(id);
 function saveLocal(){localStorage.setItem("zeus-boss-states",JSON.stringify(states))}
@@ -141,21 +141,18 @@ $("bossList").addEventListener("click",e=>{
 $("filters").addEventListener("click",e=>{const f=e.target.closest("[data-filter]");if(!f)return;filter=f.dataset.filter;document.querySelectorAll(".chip").forEach(x=>x.classList.toggle("active",x===f));render()});
 $("saveModal").onclick=()=>{if(!activeBoss)return;const v=$("modalTime").value;if(!v){toast("출현 시각을 입력하세요.");return}writeState(activeBoss.id,new Date(v).toISOString());closeTime()};
 $("cancelModal").onclick=closeTime;
-$("settingsBtn").onclick=()=>{$("settingsBack").classList.add("open");$("sbUrl").value=localStorage.getItem("zeus-sb-url")||"";$("sbKey").value=localStorage.getItem("zeus-sb-key")||""};
-$("closeSettings").onclick=()=>$("settingsBack").classList.remove("open");
-$("connectBtn").onclick=connect;
 async function connect(){
- const url=$("sbUrl").value.trim(),key=$("sbKey").value.trim();if(!url||!key){toast("URL과 anon key를 입력하세요.");return}
- localStorage.setItem("zeus-sb-url",url);localStorage.setItem("zeus-sb-key",key);
- try{if(!window.supabase)throw Error("Supabase 라이브러리를 불러오지 못했습니다.");supabaseClient=window.supabase.createClient(url,key);
+ try{
+  if(!window.supabase)throw Error("Supabase 라이브러리를 불러오지 못했습니다.");
+  supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
   const {data,error}=await supabaseClient.from("boss_state").select("*");if(error)throw error;
   data.forEach(r=>{states[r.boss_id]=r.next_spawn_at});saveLocal();
-if(channel)await supabaseClient.removeChannel(channel);
-channel=supabaseClient.channel("boss-state-live").on("postgres_changes",{event:"*",schema:"public",table:"boss_state"},payload=>{
+  if(channel)await supabaseClient.removeChannel(channel);
+  channel=supabaseClient.channel("boss-state-live").on("postgres_changes",{event:"*",schema:"public",table:"boss_state"},payload=>{
    const row=payload.new;if(row?.boss_id){states[row.boss_id]=row.next_spawn_at;saveLocal();render()}
   }).subscribe(status=>{if(status==="SUBSCRIBED"){$("connectionDot").classList.add("live");$("connectionText").textContent="실시간 공유 연결됨"}});
-  $("settingsBack").classList.remove("open");render();toast("공유 서버에 연결했습니다.");
- }catch(err){supabaseClient=null;$("connectionDot").classList.remove("live");$("connectionText").textContent="연결 실패";toast("연결 실패: "+(err.message||err))}
+  render();
+ }catch(err){supabaseClient=null;$("connectionDot").classList.remove("live");$("connectionText").textContent="연결 실패";toast("공유 서버 연결 실패: "+(err.message||err))}
 }
 $("soundBtn").onclick=()=>{soundOn=!soundOn;$("soundBtn").textContent=soundOn?"🔔 알림 켜짐":"🔔 알림 켜기";if(soundOn){try{new AudioContext().resume()}catch(e){}toast("브라우저 알림 권한은 별도로 허용해야 합니다.")}};
 let alerted=new Set();
