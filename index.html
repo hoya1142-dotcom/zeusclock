@@ -167,10 +167,34 @@ async function connect(){
   render();
  }catch(err){supabaseClient=null;$("connectionDot").classList.remove("live");$("connectionText").textContent="연결 실패";toast("공유 서버 연결 실패: "+(err.message||err))}
 }
-$("soundBtn").onclick=()=>{soundOn=!soundOn;$("soundBtn").textContent=soundOn?"🔔 알림 켜짐":"🔔 알림 켜기";if(soundOn){try{new AudioContext().resume()}catch(e){}toast("브라우저 알림 권한은 별도로 허용해야 합니다.")}};
+let alarmAudio=null;
+async function enableAlarm(){
+ try{
+  const AudioCtx=window.AudioContext||window.webkitAudioContext;
+  if(AudioCtx){if(!alarmAudio)alarmAudio=new AudioCtx();if(alarmAudio.state==="suspended")await alarmAudio.resume();}
+  if("Notification"in window&&Notification.permission==="default")await Notification.requestPermission();
+  soundOn=true;$("soundBtn").textContent="🔔 알림 켜짐";
+  toast("알림과 알람 소리를 켰습니다.");
+ }catch(e){toast("알림 설정을 확인해 주세요: "+e.message)}
+}
+function playAlarm(){
+ if(!soundOn||!alarmAudio)return;
+ if(alarmAudio.state==="suspended")alarmAudio.resume();
+ const start=alarmAudio.currentTime;
+ [0,0.45,0.9].forEach(offset=>{
+  const osc=alarmAudio.createOscillator(),gain=alarmAudio.createGain();
+  osc.type="sine";osc.frequency.setValueAtTime(880,start+offset);
+  gain.gain.setValueAtTime(0.0001,start+offset);
+  gain.gain.exponentialRampToValueAtTime(0.22,start+offset+0.025);
+  gain.gain.exponentialRampToValueAtTime(0.0001,start+offset+0.28);
+  osc.connect(gain);gain.connect(alarmAudio.destination);
+  osc.start(start+offset);osc.stop(start+offset+0.3);
+ });
+}
+$("soundBtn").onclick=()=>{if(soundOn){soundOn=false;$("soundBtn").textContent="🔔 알림 켜기";toast("알림을 껐습니다.");}else enableAlarm();};
 let alerted=new Set();
-setInterval(()=>{render();if(soundOn&&"Notification"in window){const now=Date.now();BOSSES.forEach(b=>{const t=nextFor(b);if(!t)return;const diff=t.getTime()-now;if(diff>0&&diff<=300000&&!alerted.has(b.id)){alerted.add(b.id);if(Notification.permission==="granted")new Notification(`${b.name} 5분 전입니다`)}if(diff>180000)alerted.delete(b.id)})}},1000);
-if("Notification"in window&&Notification.permission==="default"){$("soundBtn").addEventListener("click",()=>Notification.requestPermission(),{once:true})}
+setInterval(()=>{render();if(soundOn&&"Notification"in window){const now=Date.now();BOSSES.forEach(b=>{const t=nextFor(b);if(!t)return;const diff=t.getTime()-now;if(diff>0&&diff<=300000&&!alerted.has(b.id)){alerted.add(b.id);playAlarm();if(Notification.permission==="granted")new Notification(`${b.name} 5분 전입니다`)}if(diff>180000)alerted.delete(b.id)})}},1000);
+
 render();
 connect();
 </script>
