@@ -169,7 +169,7 @@ async function connect(){
 }
 $("soundBtn").onclick=()=>{soundOn=!soundOn;$("soundBtn").textContent=soundOn?"🔔 알림 켜짐":"🔔 알림 켜기";if(soundOn){try{new AudioContext().resume()}catch(e){}toast("브라우저 알림 권한은 별도로 허용해야 합니다.")}};
 let alerted=new Set();
-setInterval(()=>{render();if(soundOn&&"Notification"in window){const now=Date.now();BOSSES.forEach(b=>{const t=nextFor(b);if(!t)return;const diff=t.getTime()-now;if(diff>0&&diff<=180000&&!alerted.has(b.id)){alerted.add(b.id);if(Notification.permission==="granted")new Notification(`${b.name} 3분 전입니다`)}if(diff>180000)alerted.delete(b.id)})}},1000);
+setInterval(()=>{render();if(soundOn&&"Notification"in window){const now=Date.now();BOSSES.forEach(b=>{const t=nextFor(b);if(!t)return;const diff=t.getTime()-now;if(diff>0&&diff<=300000&&!alerted.has(b.id)){alerted.add(b.id);if(Notification.permission==="granted")new Notification(`${b.name} 5분 전입니다`)}if(diff>180000)alerted.delete(b.id)})}},1000);
 if("Notification"in window&&Notification.permission==="default"){$("soundBtn").addEventListener("click",()=>Notification.requestPermission(),{once:true})}
 render();
 connect();
