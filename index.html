@@ -201,8 +201,8 @@ function playAlarm(){
  });
 }
 $("soundBtn").onclick=()=>{if(soundOn){soundOn=false;$("soundBtn").textContent="🔔 알림 켜기";toast("알림을 껐습니다.");}else enableAlarm();};
-let alerted=new Set();
-setInterval(()=>{render();if(soundOn){const now=Date.now();BOSSES.forEach(b=>{const t=nextFor(b);if(!t)return;const diff=t.getTime()-now;if(diff>0&&diff<=300000&&!alerted.has(b.id)){alerted.add(b.id);playAlarm();speakAlarm(`${b.name}, 보스 출현 5분 전입니다.`);if("Notification"in window&&Notification.permission==="granted")new Notification(`${b.name} 5분 전입니다`)}if(diff>180000)alerted.delete(b.id)})}},1000);
+let alerted=new Set(),alarmCooldownUntil=0;
+setInterval(()=>{render();if(soundOn){const now=Date.now();BOSSES.forEach(b=>{const t=nextFor(b);if(!t)return;const diff=t.getTime()-now;if(diff>0&&diff<=300000&&!alerted.has(b.id)&&now>=alarmCooldownUntil){alerted.add(b.id);alarmCooldownUntil=now+300000;playAlarm();speakAlarm(`${b.name}, 보스 출현 5분 전입니다.`);if("Notification"in window&&Notification.permission==="granted")new Notification(`${b.name} 5분 전입니다`)}if(diff>300000)alerted.delete(b.id)})}},1000);
 
 render();
 connect();
