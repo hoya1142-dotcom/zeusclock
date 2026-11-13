@@ -14,7 +14,7 @@
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -20%,#1b2b45 0%,transparent 48%),var(--bg);color:var(--text);font-family:Inter,"Noto Sans KR",sans-serif;min-height:100vh}
 .wrap{max-width:1180px;margin:auto;padding:28px 22px 60px}.top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:26px}
 .brand{display:flex;align-items:center;gap:13px}.logo{width:46px;height:46px;border-radius:15px;background:linear-gradient(145deg,#f5d18b,#a96a27);display:grid;place-items:center;color:#17120a;font-size:23px;font-weight:900;box-shadow:0 8px 25px #d89a3d30}.eyebrow{font-size:10px;letter-spacing:.25em;color:var(--gold);font-weight:800}.brand h1{font-size:21px;letter-spacing:.04em;margin:3px 0 0}.top-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.volume-control{display:flex;align-items:center;gap:4px;padding:4px 6px;border:1px solid #4b5870;border-radius:8px;background:#111b2a;color:var(--text);font-size:10px;margin:0}.volume-control input{width:54px;min-width:54px;max-width:54px;accent-color:var(--gold);cursor:pointer;height:14px}.volume-label{font-weight:700;color:var(--gold);white-space:nowrap}.volume-value{min-width:27px;text-align:right;color:var(--text);font-variant-numeric:tabular-nums;font-size:10px;font-weight:700}.volume-hint{display:none}
-.btn{border:1px solid var(--line);background:#172236;color:var(--text);border-radius:10px;padding:10px 13px;font-weight:700;cursor:pointer;font:inherit;font-size:12px;transition:.15s}.btn:hover{border-color:#647997;transform:translateY(-1px)}.btn.primary{background:linear-gradient(135deg,#f1c879,#c68a3b);color:#201608;border:0}.btn.ghost{background:transparent}.btn.danger{color:#ff9b9b}
+.btn{border:1px solid var(--line);background:#172236;color:var(--text);border-radius:10px;padding:10px 13px;font-weight:700;cursor:pointer;font:inherit;font-size:12px;transition:.15s}.btn:hover{border-color:#647997;transform:translateY(-1px)}.btn.primary{background:linear-gradient(135deg,#f1c879,#c68a3b);color:#201608;border:0}.btn.ghost{background:transparent}.btn.danger{color:#ff9b9b}.btn.alarm-toggle{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-width:116px;padding:9px 12px;font-weight:800}.btn.alarm-off{background:#252b35;border-color:#505b6b;color:#c0c7d2}.btn.alarm-on{background:#123729;border-color:#287a55;color:#9af0c1}.alarm-indicator{display:inline-block;width:9px;height:9px;flex:0 0 9px;border-radius:50%;background:#7d8795;box-shadow:none}.alarm-on .alarm-indicator{background:#35d58a;box-shadow:0 0 9px #35d58a}
 .status{display:inline-flex;align-items:center;gap:7px;color:var(--muted);font-size:11px}.dot{width:7px;height:7px;border-radius:50%;background:#e7ae5b;box-shadow:0 0 10px currentColor}.dot.live{background:var(--green)}
 .hero{display:grid;grid-template-columns:1.5fr .8fr;gap:16px;margin-bottom:18px}.hero-card,.side-card,.section{background:linear-gradient(145deg,#151f31,#101725);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
 .hero-card{padding:24px 26px;position:relative;overflow:hidden}.hero-card:after{content:"";position:absolute;width:220px;height:220px;right:-50px;top:-95px;border:1px solid #e8b75c22;border-radius:50%;box-shadow:0 0 0 25px #e8b75c08,0 0 0 50px #e8b75c05}.kicker{color:var(--gold);font-size:10px;font-weight:800;letter-spacing:.2em}.hero-name{font-size:24px;font-weight:800;margin:10px 0 3px}.hero-sub{color:var(--muted);font-size:12px}.hero-time{font-size:clamp(34px,6vw,56px);font-weight:800;letter-spacing:.04em;font-variant-numeric:tabular-nums;margin:18px 0 14px}.hero-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.side-card{padding:20px;display:flex;flex-direction:column;justify-content:space-between}.side-label{font-size:11px;color:var(--muted)}.side-num{font-size:30px;font-weight:800;margin:8px 0}.side-note{font-size:11px;color:var(--muted);line-height:1.6}
@@ -31,7 +31,7 @@
 <div class="wrap">
 <header class="top">
   <div class="brand"><div class="logo">Z</div><div><div class="eyebrow">OMAN · THE GOD</div><h1>ZEUS BOSS CLOCK</h1></div></div>
-  <div class="top-actions"><span class="status"><i class="dot" id="connectionDot"></i><span id="connectionText">로컬 미리보기</span></span><div class="volume-control"><span class="volume-label">🔊 음량</span><input id="volumeSlider" type="range" min="0" max="100" value="50" aria-label="알람 음량"><span class="volume-value" id="volumeValue">50%</span></div><button class="btn ghost" id="soundBtn">🔔 알림 켜기</button></div>
+  <div class="top-actions"><span class="status"><i class="dot" id="connectionDot"></i><span id="connectionText">로컬 미리보기</span></span><div class="volume-control"><span class="volume-label">🔊 음량</span><input id="volumeSlider" type="range" min="0" max="100" value="50" aria-label="알람 음량"><span class="volume-value" id="volumeValue">50%</span></div><button class="btn alarm-toggle alarm-off" id="soundBtn" type="button" aria-pressed="false"><i class="alarm-indicator"></i><span>🔔 알림 꺼짐</span></button></div>
 </header>
 
 <section class="hero">
@@ -90,6 +90,7 @@ let filter="전체", supabaseClient=null, channel=null, activeBoss=null, soundOn
 let alarmVolume=Math.max(0,Math.min(100,Number(localStorage.getItem("zeus-alarm-volume")??50)));
 
 const $=id=>document.getElementById(id);
+function updateAlarmUI(note=""){const btn=$("soundBtn");if(!btn)return;btn.classList.toggle("alarm-on",soundOn);btn.classList.toggle("alarm-off",!soundOn);btn.setAttribute("aria-pressed",String(soundOn));btn.querySelector("span").textContent=soundOn?"🔔 알림 켜짐"+note:"🔕 알림 꺼짐";}
 $("volumeSlider").value=alarmVolume;$("volumeValue").textContent=alarmVolume+"%";
 $("volumeSlider").oninput=e=>{alarmVolume=Number(e.target.value);$("volumeValue").textContent=alarmVolume+"%";localStorage.setItem("zeus-alarm-volume",String(alarmVolume));previewVolume();};
 function previewVolume(){if(!alarmAudio||alarmAudio.state!=="running"||alarmVolume<=0)return;try{const osc=alarmAudio.createOscillator(),gain=alarmAudio.createGain(),now=alarmAudio.currentTime;osc.type="sine";osc.frequency.value=880;gain.gain.setValueAtTime(0.0001,now);gain.gain.exponentialRampToValueAtTime(0.16*(alarmVolume/100),now+0.015);gain.gain.exponentialRampToValueAtTime(0.0001,now+0.16);osc.connect(gain);gain.connect(alarmAudio.destination);osc.start(now);osc.stop(now+0.17);}catch(e){}}
@@ -180,7 +181,7 @@ async function enableAlarm(){
   if(AudioCtx){if(!alarmAudio)alarmAudio=new AudioCtx();if(alarmAudio.state==="suspended")await alarmAudio.resume();}
   if("Notification"in window&&Notification.permission==="default")await Notification.requestPermission();
   if(!AudioCtx)throw new Error("이 브라우저는 오디오 재생을 지원하지 않습니다.");
-  soundOn=true;localStorage.setItem("zeus-alarm-enabled","true");$("soundBtn").textContent="🔔 알림 켜짐";
+  soundOn=true;localStorage.setItem("zeus-alarm-enabled","true");updateAlarmUI();
   playAlarm();speakAlarm("음성 알림 테스트입니다.");
   toast("알람과 음성 테스트를 재생했습니다.");
  }catch(e){toast("알림 설정을 확인해 주세요: "+e.message)}
@@ -206,7 +207,7 @@ function playAlarm(){
   osc.start(start+offset);osc.stop(start+offset+0.3);
  });
 }
-$("soundBtn").onclick=()=>{if(soundOn&&alarmAudio&&alarmAudio.state==="running"){soundOn=false;localStorage.setItem("zeus-alarm-enabled","false");$("soundBtn").textContent="🔔 알림 켜기";toast("알림을 껐습니다.");}else enableAlarm();};
+$("soundBtn").onclick=()=>{if(soundOn&&alarmAudio&&alarmAudio.state==="running"){soundOn=false;localStorage.setItem("zeus-alarm-enabled","false");updateAlarmUI();toast("알림을 껐습니다.");}else enableAlarm();};
 async function restoreAlarmPreference(){
  if(localStorage.getItem("zeus-alarm-enabled")!=="true")return;
  const AudioCtx=window.AudioContext||window.webkitAudioContext;
@@ -215,8 +216,8 @@ async function restoreAlarmPreference(){
   alarmAudio=new AudioCtx();
   await alarmAudio.resume();
   soundOn=true;
-  $("soundBtn").textContent=alarmAudio.state==="running"?"🔔 알림 켜짐":"🔔 알림 켜짐 (소리 확인)";
- }catch(e){soundOn=true;$("soundBtn").textContent="🔔 알림 켜짐 (소리 확인)";}
+  updateAlarmUI(alarmAudio.state==="running"?"":" (소리 확인)");
+ }catch(e){soundOn=true;updateAlarmUI(" (소리 확인)");}
  }
 let alerted=new Set(),alarmCooldownUntil=0;
 setInterval(()=>{render();if(soundOn){const now=Date.now();BOSSES.forEach(b=>{const t=nextFor(b);if(!t)return;const diff=t.getTime()-now;if(diff>0&&diff<=300000&&!alerted.has(b.id)&&now>=alarmCooldownUntil){alerted.add(b.id);alarmCooldownUntil=now+300000;playAlarm();speakAlarm(`${b.name}, 보스 출현 5분 전입니다.`);if("Notification"in window&&Notification.permission==="granted")new Notification(`${b.name} 5분 전입니다`)}if(diff>300000)alerted.delete(b.id)})}},1000);
