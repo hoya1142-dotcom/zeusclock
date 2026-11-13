@@ -98,9 +98,10 @@ function nextSpawn(boss, state, definition, now) {
   if (boss.dailyHours) return nextDaily(boss.dailyHours, now);
 
   const saved = state?.next_spawn_at ? new Date(state.next_spawn_at) : null;
-  if (boss.cycle && saved && !Number.isNaN(saved.getTime())) {
+  const repeatHours = boss.cycle || boss.cycleHours;
+  if (repeatHours && saved && !Number.isNaN(saved.getTime())) {
     if (saved > now) return saved;
-    const period = boss.cycle * 60 * 60 * 1000;
+    const period = repeatHours * 60 * 60 * 1000;
     const passed = Math.floor((now.getTime() - saved.getTime()) / period) + 1;
     return new Date(saved.getTime() + passed * period);
   }
@@ -186,7 +187,7 @@ async function connectVoice() {
 async function checkBosses() {
   const [{ data: states, error: stateError }, { data: definitions, error: defError }] = await Promise.all([
     supabase.from("boss_state").select("boss_id,next_spawn_at"),
-    supabase.from("boss_definitions").select("id,name,fixed_days,fixed_time,is_inter_boss"),
+    supabase.from("boss_definitions").select("id,name,fixed_days,fixed_time,cycle_hours,is_inter_boss"),
   ]);
   if (stateError) throw stateError;
   if (defError) throw defError;
@@ -195,7 +196,7 @@ async function checkBosses() {
   const definitionMap = new Map((definitions || []).map((row) => [row.id, row]));
   const now = new Date();
 
-  const customBosses = (definitions || []).filter((row) => row.id.startsWith("custom-")).map((row) => ({ id: row.id, name: row.name, fixedDays: row.fixed_days || [], fixedTime: row.fixed_time }));
+  const customBosses = (definitions || []).filter((row) => row.id.startsWith("custom-")).map((row) => ({ id: row.id, name: row.name, fixedDays: row.fixed_days || [], fixedTime: row.fixed_time, cycleHours: row.cycle_hours }));
   for (const boss of [...BOSSES, ...customBosses]) {
     const next = nextSpawn(boss, stateMap.get(boss.id), definitionMap.get(boss.id), now);
     if (!next) continue;
