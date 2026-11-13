@@ -85,7 +85,8 @@ const BOSSES = [
 ];
 const defaults = Object.fromEntries(BOSSES.map(b=>[b.id,null]));
 let states = {...defaults,...JSON.parse(localStorage.getItem("zeus-boss-states")||"{}")};
-const SUPABASE_URL="https://wpeqlhkidhtyrncixmxd.supabase.co", SUPABASE_KEY="sb_publishable_6ze3q32jYfJboSCeAkK1oQ_MaQYpehf";\nlet filter="전체", supabaseClient=null, channel=null, activeBoss=null, soundOn=false;
+const SUPABASE_URL="https://wpeqlhkidhtyrncixmxd.supabase.co", SUPABASE_KEY="sb_publishable_6ze3q32jYfJboSCeAkK1oQ_MaQYpehf";
+let filter="전체", supabaseClient=null, channel=null, activeBoss=null, soundOn=false;
 
 const $=id=>document.getElementById(id);
 function saveLocal(){localStorage.setItem("zeus-boss-states",JSON.stringify(states))}
