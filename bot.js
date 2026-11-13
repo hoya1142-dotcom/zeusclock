@@ -14,6 +14,7 @@ const {
   StreamType,
   entersState,
   NoSubscriberBehavior,
+  generateDependencyReport,
 } = require("@discordjs/voice");
 const { createClient } = require("@supabase/supabase-js");
 const googleTTS = require("google-tts-api");
@@ -159,6 +160,7 @@ async function connectVoice() {
 
   console.log("음성 채널 연결을 시작합니다:", channel.name);
   voiceConnection = joinVoiceChannel({
+    debug: true,
     channelId: channel.id,
     guildId: channel.guild.id,
     adapterCreator: channel.guild.voiceAdapterCreator,
@@ -234,6 +236,9 @@ async function checkBosses() {
 
 client.once("ready", async () => {
   console.log(`디스코드 로그인 완료: ${client.user.tag}`);
+  console.log("=== 음성 라이브러리 진단 정보 ===");
+  console.log(generateDependencyReport());
+  console.log("=== 진단 정보 끝 ===");
   try {
     await connectVoice();
   } catch (error) {
