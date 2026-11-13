@@ -1,0 +1,20 @@
+{
+  "name": "zeus-boss-discord-voice-bot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ZEUS BOSS CLOCK Korean voice alert bot",
+  "main": "bot.js",
+  "scripts": {
+    "start": "TZ=Asia/Seoul node bot.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@discordjs/voice": "^0.18.0",
+    "@supabase/supabase-js": "^2.57.0",
+    "discord.js": "^14.22.1",
+    "ffmpeg-static": "^5.2.0",
+    "google-tts-api": "^2.0.2"
+  }
+}
