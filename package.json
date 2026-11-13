@@ -5,7 +5,7 @@
   "description": "ZEUS BOSS CLOCK Korean voice alert bot",
   "main": "bot.js",
   "scripts": {
-    "start": "TZ=Asia/Seoul node bot.js"
+    "start": "node bot.js"
   },
   "engines": {
     "node": ">=20"
