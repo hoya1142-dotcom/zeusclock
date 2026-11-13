@@ -156,34 +156,49 @@ async function connectVoice() {
   if (voiceConnection) {
     try { voiceConnection.destroy(); } catch {}
   }
+
+  console.log("음성 채널 연결을 시작합니다:", channel.name);
   voiceConnection = joinVoiceChannel({
     channelId: channel.id,
     guildId: channel.guild.id,
     adapterCreator: channel.guild.voiceAdapterCreator,
-    selfDeaf: true,
+    selfDeaf: false,
     selfMute: false,
   });
+
   const currentConnection = voiceConnection;
   currentConnection.subscribe(player);
+  currentConnection.on("stateChange", (oldState, newState) => {
+    console.log(`음성 연결 상태: ${oldState.status} -> ${newState.status}`);
+  });
+  currentConnection.on("error", (error) => {
+    console.error("음성 연결 내부 오류:", error.message);
+  });
+
+  // 최초 연결이 완료되기 전에는 재접속 감시가 연결을 끊지 않도록 합니다.
+  await entersState(currentConnection, VoiceConnectionStatus.Ready, 60_000);
+  console.log(`음성 채널 접속 완료: ${channel.name}`);
+
   currentConnection.on(VoiceConnectionStatus.Disconnected, async () => {
+    console.warn("음성 연결이 끊겼습니다. 재연결을 확인합니다.");
     try {
       await Promise.race([
-        entersState(currentConnection, VoiceConnectionStatus.Signalling, 5_000),
-        entersState(currentConnection, VoiceConnectionStatus.Connecting, 5_000),
+        entersState(currentConnection, VoiceConnectionStatus.Signalling, 10_000),
+        entersState(currentConnection, VoiceConnectionStatus.Connecting, 10_000),
       ]);
-    } catch {
+      console.log("음성 재연결이 진행 중입니다.");
+    } catch (error) {
       if (voiceConnection === currentConnection) {
-        console.warn("음성 연결이 끊겨 재접속을 시도합니다.");
+        console.error("음성 재연결 실패:", error.message);
         currentConnection.destroy();
         voiceConnection = null;
-        setTimeout(() => connectVoice().catch((error) => console.error("음성 재접속 실패:", error.message)), 5_000);
+        setTimeout(() => {
+          connectVoice().catch((retryError) => console.error("음성 재접속 실패:", retryError.message));
+        }, 5_000);
       }
     }
   });
-  await entersState(currentConnection, VoiceConnectionStatus.Ready, 30_000);
-  console.log(`음성 채널 접속 완료: ${channel.name}`);
 }
-
 async function checkBosses() {
   const [{ data: states, error: stateError }, { data: definitions, error: defError }] = await Promise.all([
     supabase.from("boss_state").select("boss_id,next_spawn_at"),
