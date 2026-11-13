@@ -159,5 +159,6 @@ let alerted=new Set();
 setInterval(()=>{render();if(soundOn&&"Notification"in window){const now=Date.now();BOSSES.forEach(b=>{const t=nextFor(b);if(!t)return;const diff=t.getTime()-now;if(diff>0&&diff<=180000&&!alerted.has(b.id)){alerted.add(b.id);if(Notification.permission==="granted")new Notification(`${b.name} 3분 전입니다`)}if(diff>180000)alerted.delete(b.id)})}},1000);
 if("Notification"in window&&Notification.permission==="default"){$("soundBtn").addEventListener("click",()=>Notification.requestPermission(),{once:true})}
 render();
+connect();
 </script>
 </body></html>
