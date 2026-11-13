@@ -247,8 +247,27 @@ async function restoreAlarmPreference(){
   updateAlarmUI(alarmAudio.state==="running"?"":" (소리 확인)");
  }catch(e){soundOn=true;updateAlarmUI(" (소리 확인)");}
  }
+// 한 번 알림이 울리면 5분 동안 모든 보스 알림을 무시합니다.
+// 대기 중에 5분 전 구간을 지나간 보스는 나중에 뒤늦게 알리지 않습니다.
 let alerted=new Set(),alarmCooldownUntil=0;
-setInterval(()=>{render();if(soundOn){const now=Date.now();[...BOSSES,...customBosses].forEach(b=>{const t=nextFor(b);if(!t)return;const diff=t.getTime()-now;if(diff>0&&diff<=300000&&!alerted.has(b.id)&&now>=alarmCooldownUntil){alerted.add(b.id);alarmCooldownUntil=now+300000;playAlarm();speakAlarm(`${b.name}, 보스 출현 5분 전입니다.`);if("Notification"in window&&Notification.permission==="granted")new Notification(`${b.name} 5분 전입니다`)}if(diff>300000)alerted.delete(b.id)})}},1000);
+setInterval(()=>{
+ render();
+ if(!soundOn)return;
+ const now=Date.now();
+ // 5분 정숙 시간이 끝나기 전에는 알림 대상을 검사하지 않고 모두 패스합니다.
+ if(now<alarmCooldownUntil)return;
+ const bosses=[...BOSSES,...customBosses];
+ const due=bosses.map(b=>({boss:b,time:nextFor(b),id:b.id})).filter(x=>x.time).map(x=>({...x,diff:x.time.getTime()-now}));
+ // 이미 5분 전 구간을 지나 출현까지 5분 미만으로 남은 보스는 알리지 않습니다.
+ due.forEach(x=>{if(x.diff<=0||x.diff>300000)alerted.delete(x.id);});
+ const target=due.filter(x=>x.diff>0&&x.diff<=300000&&!alerted.has(x.id)).sort((a,b)=>a.diff-b.diff)[0];
+ if(!target)return;
+ alerted.add(target.id);
+ alarmCooldownUntil=now+300000;
+ playAlarm();
+ speakAlarm(`${target.boss.name}, 보스 출현 5분 전입니다.`);
+ if("Notification"in window&&Notification.permission==="granted")new Notification(`${target.boss.name} 5분 전입니다`);
+},1000);
 
 render();
 connect();
