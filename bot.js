@@ -17,6 +17,7 @@ const {
 } = require("@discordjs/voice");
 const { createClient } = require("@supabase/supabase-js");
 const googleTTS = require("google-tts-api");
+const { Readable } = require("node:stream");
 
 const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID || "581093050151993347";
 const DISCORD_VOICE_CHANNEL_ID = process.env.DISCORD_VOICE_CHANNEL_ID || "581093050571292685";
@@ -114,8 +115,13 @@ async function speak(text) {
   while (speechQueue.length) {
     const line = speechQueue.shift();
     try {
+      console.log("음성 생성 중:", line);
       const url = googleTTS.getAudioUrl(line, { lang: "ko", slow: false, host: "https://translate.google.com" });
-      const resource = createAudioResource(url, { inputType: StreamType.Arbitrary });
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`TTS 다운로드 실패: HTTP ${response.status}`);
+      const audioBuffer = Buffer.from(await response.arrayBuffer());
+      if (!audioBuffer.length) throw new Error("TTS 오디오 파일이 비어 있습니다.");
+      const resource = createAudioResource(Readable.from([audioBuffer]), { inputType: StreamType.Arbitrary });
       await new Promise((resolve, reject) => {
         const onIdle = () => cleanup(resolve);
         const onError = (error) => cleanup(() => reject(error));
@@ -127,7 +133,9 @@ async function speak(text) {
         player.once(AudioPlayerStatus.Idle, onIdle);
         player.once("error", onError);
         player.play(resource);
+        console.log("음성 재생 시작:", line);
       });
+      console.log("음성 재생 완료:", line);
     } catch (error) {
       console.error("음성 안내 실패:", error.message);
     }
@@ -214,6 +222,7 @@ client.once("ready", async () => {
     process.exit(1);
   }
 
+  await speak("제우스 보스 알림 봇이 연결되었습니다.");
   await checkBosses().catch((error) => console.error("젠타임 확인 실패:", error.message));
   setInterval(() => {
     checkBosses().catch((error) => console.error("젠타임 확인 실패:", error.message));
