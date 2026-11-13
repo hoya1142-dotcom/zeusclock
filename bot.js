@@ -18,7 +18,9 @@ const {
 const { createClient } = require("@supabase/supabase-js");
 const googleTTS = require("google-tts-api");
 
-const required = ["DISCORD_TOKEN", "DISCORD_GUILD_ID", "DISCORD_VOICE_CHANNEL_ID", "SUPABASE_URL", "SUPABASE_ANON_KEY"];
+const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID || "581093050151993347";
+const DISCORD_VOICE_CHANNEL_ID = process.env.DISCORD_VOICE_CHANNEL_ID || "581093050571292685";
+const required = ["DISCORD_TOKEN", "SUPABASE_URL", "SUPABASE_ANON_KEY"];
 for (const key of required) {
   if (!process.env[key]) {
     console.error(`필수 환경변수가 없습니다: ${key}`);
@@ -134,11 +136,11 @@ async function speak(text) {
 }
 
 async function connectVoice() {
-  const channel = await client.channels.fetch(process.env.DISCORD_VOICE_CHANNEL_ID);
+  const channel = await client.channels.fetch(DISCORD_VOICE_CHANNEL_ID);
   if (!channel || ![ChannelType.GuildVoice, ChannelType.GuildStageVoice].includes(channel.type)) {
     throw new Error("DISCORD_VOICE_CHANNEL_ID가 올바른 음성 채널 ID가 아닙니다.");
   }
-  if (channel.guild.id !== process.env.DISCORD_GUILD_ID) {
+  if (channel.guild.id !== DISCORD_GUILD_ID) {
     throw new Error("음성 채널이 설정한 디스코드 서버에 속해 있지 않습니다.");
   }
 
