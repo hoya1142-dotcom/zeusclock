@@ -175,9 +175,16 @@ async function enableAlarm(){
   if("Notification"in window&&Notification.permission==="default")await Notification.requestPermission();
   if(!AudioCtx)throw new Error("이 브라우저는 오디오 재생을 지원하지 않습니다.");
   soundOn=true;$("soundBtn").textContent="🔔 알림 켜짐";
-  playAlarm();
-  toast("알람 테스트 소리를 재생했습니다.");
+  playAlarm();speakAlarm("음성 알림 테스트입니다.");
+  toast("알람과 음성 테스트를 재생했습니다.");
  }catch(e){toast("알림 설정을 확인해 주세요: "+e.message)}
+}
+function speakAlarm(message){
+ if(!("speechSynthesis"in window)||!("SpeechSynthesisUtterance"in window))return;
+ window.speechSynthesis.cancel();
+ const utterance=new SpeechSynthesisUtterance(message);
+ utterance.lang="ko-KR";utterance.rate=1;utterance.pitch=1;utterance.volume=1;
+ window.speechSynthesis.speak(utterance);
 }
 function playAlarm(){
  if(!soundOn||!alarmAudio)return;
@@ -195,7 +202,7 @@ function playAlarm(){
 }
 $("soundBtn").onclick=()=>{if(soundOn){soundOn=false;$("soundBtn").textContent="🔔 알림 켜기";toast("알림을 껐습니다.");}else enableAlarm();};
 let alerted=new Set();
-setInterval(()=>{render();if(soundOn){const now=Date.now();BOSSES.forEach(b=>{const t=nextFor(b);if(!t)return;const diff=t.getTime()-now;if(diff>0&&diff<=300000&&!alerted.has(b.id)){alerted.add(b.id);playAlarm();if("Notification"in window&&Notification.permission==="granted")new Notification(`${b.name} 5분 전입니다`)}if(diff>180000)alerted.delete(b.id)})}},1000);
+setInterval(()=>{render();if(soundOn){const now=Date.now();BOSSES.forEach(b=>{const t=nextFor(b);if(!t)return;const diff=t.getTime()-now;if(diff>0&&diff<=300000&&!alerted.has(b.id)){alerted.add(b.id);playAlarm();speakAlarm(`${b.name}, 보스 출현 5분 전입니다.`);if("Notification"in window&&Notification.permission==="granted")new Notification(`${b.name} 5분 전입니다`)}if(diff>180000)alerted.delete(b.id)})}},1000);
 
 render();
 connect();
