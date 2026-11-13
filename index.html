@@ -176,8 +176,8 @@ async function connect(){
   if(!window.supabase)throw Error("Supabase 라이브러리를 불러오지 못했습니다.");
   supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
   const {data,error}=await supabaseClient.from("boss_state").select("*");if(error)throw error;
-  const {data:bossData,error:bossError}=await supabaseClient.from("boss_definitions").select("*");if(bossError)throw bossError;
-  customBosses=(bossData||[]).map(r=>({id:r.id,name:r.name,type:r.type,fixedDays:r.fixed_days||[],fixedTime:r.fixed_time,isInterBoss:r.is_inter_boss}));
+  const {data:bossData,error:bossError}=await supabaseClient.from("boss_definitions").select("*");
+  if(bossError){console.warn("boss_definitions 테이블을 확인하세요:",bossError.message);customBosses=[];}else customBosses=(bossData||[]).map(r=>({id:r.id,name:r.name,type:r.type,fixedDays:r.fixed_days||[],fixedTime:r.fixed_time,isInterBoss:r.is_inter_boss}));
   data.forEach(r=>{states[r.boss_id]=r.next_spawn_at});saveLocal();
   if(channel)await supabaseClient.removeChannel(channel);
   channel=supabaseClient.channel("boss-state-live").on("postgres_changes",{event:"*",schema:"public",table:"boss_state"},payload=>{
