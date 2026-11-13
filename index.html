@@ -181,13 +181,13 @@ async function connect(){
   supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
   const {data,error}=await supabaseClient.from("boss_state").select("*");if(error)throw error;
   const {data:bossData,error:bossError}=await supabaseClient.from("boss_definitions").select("*");
-  if(bossError){console.warn("boss_definitions 테이블을 확인하세요:",bossError.message);customBosses=[];}else customBosses=(bossData||[]).map(r=>({id:r.id,name:r.name,type:r.type,fixedDays:r.fixed_days||[],fixedTime:r.fixed_time,isInterBoss:r.is_inter_boss}));
+  if(bossError){console.warn("boss_definitions 테이블을 확인하세요:",bossError.message);customBosses=[];}else customBosses=(bossData||[]).map(r=>({id:r.id,name:r.name,type:(r.type==="인터"||r.type==="인던")?"보스":r.type,fixedDays:r.fixed_days||[],fixedTime:r.fixed_time,isInterBoss:r.is_inter_boss}));
   data.forEach(r=>{states[r.boss_id]=r.next_spawn_at});saveLocal();
   if(channel)await supabaseClient.removeChannel(channel);
   channel=supabaseClient.channel("boss-state-live").on("postgres_changes",{event:"*",schema:"public",table:"boss_state"},payload=>{
    const row=payload.new;if(row?.boss_id){if(payload.eventType==="DELETE")delete states[row.boss_id];else states[row.boss_id]=row.next_spawn_at;saveLocal();render()}
   }).subscribe(status=>{if(status==="SUBSCRIBED"){$("connectionDot").classList.add("live");$("connectionText").textContent="실시간 공유 연결됨"}});
-  supabaseClient.channel("boss-definitions-live").on("postgres_changes",{event:"*",schema:"public",table:"boss_definitions"},async()=>{const {data}=await supabaseClient.from("boss_definitions").select("*");customBosses=(data||[]).map(r=>({id:r.id,name:r.name,type:r.type,fixedDays:r.fixed_days||[],fixedTime:r.fixed_time,isInterBoss:r.is_inter_boss}));render()}).subscribe();
+  supabaseClient.channel("boss-definitions-live").on("postgres_changes",{event:"*",schema:"public",table:"boss_definitions"},async()=>{const {data}=await supabaseClient.from("boss_definitions").select("*");customBosses=(data||[]).map(r=>({id:r.id,name:r.name,type:(r.type==="인터"||r.type==="인던")?"보스":r.type,fixedDays:r.fixed_days||[],fixedTime:r.fixed_time,isInterBoss:r.is_inter_boss}));render()}).subscribe();
   render();
  }catch(err){supabaseClient=null;$("connectionDot").classList.remove("live");$("connectionText").textContent="연결 실패";toast("공유 서버 연결 실패: "+(err.message||err))}
 }
