@@ -196,7 +196,7 @@ async function checkBosses() {
   const definitionMap = new Map((definitions || []).map((row) => [row.id, row]));
   const now = new Date();
 
-  const customBosses = (definitions || []).filter((row) => row.id.startsWith("custom-")).map((row) => ({ id: row.id, name: row.name, fixedDays: row.fixed_days || [], fixedTime: row.fixed_time, cycleHours: row.cycle_hours }));
+  const customBosses = (definitions || []).filter((row) => row.id.startsWith("custom-")).map((row) => ({ id: row.id, name: row.name, fixedDays: row.fixed_days || [], fixedTime: row.fixed_time, cycleHours: row.cycle_hours || 8 }));
   for (const boss of [...BOSSES, ...customBosses]) {
     const next = nextSpawn(boss, stateMap.get(boss.id), definitionMap.get(boss.id), now);
     if (!next) continue;
