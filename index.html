@@ -49,8 +49,8 @@
 </section>
 
 <section class="section">
- <div class="section-head"><div><h2>보스 현황</h2><div class="section-sub">가까운 출현 순으로 자동 정렬 · 최초 출현시간 등록 후 주기에 맞춰 자동 반복됩니다</div></div>
- <div class="filters" id="filters"><button class="chip active" data-filter="전체">전체</button><button class="chip" data-filter="필드">필드</button><button class="chip" data-filter="인던">인던</button><button class="chip" data-filter="주간">주간</button><button class="chip" data-filter="일일">일일</button></div></div>
+ <div class="section-head"><div><h2>보스 현황</h2><div class="section-sub">가까운 출현 순으로 자동 정렬 · 고정보스는 지정 요일과 시간에 자동 반복됩니다</div><button class="btn primary" id="addBossBtn" style="margin-top:10px">＋ 보스 추가</button></div>
+ <div class="filters" id="filters"><button class="chip active" data-filter="전체">전체</button><button class="chip" data-filter="필드">필드</button><button class="chip" data-filter="인터">인터</button><button class="chip" data-filter="주간">주간</button><button class="chip" data-filter="일일">일일</button></div></div>
  <div class="boss-list" id="bossList"></div>
 </section>
 <div class="footer">ZEUS BOSS CLOCK · 공유되는 컷 기록은 누구나 등록할 수 있습니다.</div>
@@ -59,6 +59,8 @@
 <div class="modal-back" id="modalBack"><div class="modal"><h3 id="modalTitle">보스 시간 설정</h3><p id="modalDesc">현재 시각을 기준으로 몇 시간 몇 분 뒤에 출현하는지 입력하세요. 설정한 시간은 모든 접속자에게 공유됩니다.</p><div class="field"><label>보스</label><input id="modalBoss" disabled></div><div class="duration-fields"><div class="field"><label for="modalHours">몇 시간 뒤</label><div class="duration-input"><input type="number" id="modalHours" min="0" max="999" step="1" value="0"><span>시간</span></div></div><div class="field"><label for="modalMinutes">몇 분 뒤</label><div class="duration-input"><input type="number" id="modalMinutes" min="0" max="59" step="1" value="0"><span>분</span></div></div></div><div class="duration-preview" id="durationPreview">현재 시각 기준 0시간 0분 뒤 출현</div><div class="modal-actions"><button class="btn" id="cancelModal">취소</button><button class="btn primary" id="saveModal">적용</button></div></div></div>
 
 <div class="toast" id="toast"></div>
+<div class="modal-back" id="addBossBack"><div class="modal"><h3>보스 추가</h3><p>추가한 보스 정보는 모든 접속자에게 공유됩니다.</p><div class="field"><label for="newBossName">보스 이름</label><input id="newBossName" maxlength="40" placeholder="보스 이름 입력"></div><div class="field"><label for="newBossType">보스 종류</label><select id="newBossType" style="width:100%;padding:12px;border-radius:9px;border:1px solid var(--line);background:#0b1320;color:var(--text)"><option value="필드">필드</option><option value="인터">인터</option></select></div><div class="field"><label><input type="checkbox" id="newBossInter"> 인터보스 여부</label></div><div class="field"><label><input type="checkbox" id="newBossFixed"> 고정젠 보스 (요일·시간 지정)</label></div><div id="fixedOptions" style="display:none"><div class="field"><label>출현 요일 (복수 선택 가능)</label><div id="newBossDays" style="display:flex;gap:10px;flex-wrap:wrap;font-size:12px"><label><input type="checkbox" value="0"> 일</label><label><input type="checkbox" value="1"> 월</label><label><input type="checkbox" value="2"> 화</label><label><input type="checkbox" value="3"> 수</label><label><input type="checkbox" value="4"> 목</label><label><input type="checkbox" value="5"> 금</label><label><input type="checkbox" value="6"> 토</label></div></div><div class="field"><label for="newBossTime">출현 시간</label><input id="newBossTime" type="time" value="21:00"></div></div><div class="modal-actions"><button class="btn" id="cancelAddBoss">취소</button><button class="btn primary" id="saveAddBoss">보스 추가</button></div></div></div>
+
 
 <script>
 const BOSSES = [
@@ -72,7 +74,7 @@ const BOSSES = [
  {id:"kini",name:"키니 러우리",type:"필드",cycle:12},
  {id:"tripok",name:"트리포크",type:"필드",cycle:12},
  {id:"giant-hand",name:"거인의 세번째 손",type:"필드",cycle:12},
- {id:"sealed-amorpos",name:"봉인된 아모르포스",type:"인던",cycle:8},
+ {id:"sealed-amorpos",name:"봉인된 아모르포스",type:"인터",cycle:8},
  {id:"sealed-vdeles",name:"봉인된 브델레스",type:"인던",cycle:24},
  {id:"argus",name:"아르고스",type:"주간",weekDay:1,hour:21},
  {id:"medea",name:"메데이아",type:"주간",weekDay:2,hour:21},
@@ -86,7 +88,7 @@ const BOSSES = [
 const defaults = Object.fromEntries(BOSSES.map(b=>[b.id,null]));
 let states = {...defaults,...JSON.parse(localStorage.getItem("zeus-boss-states")||"{}")};
 const SUPABASE_URL="https://wpeqlhkidhtyrncixmxd.supabase.co", SUPABASE_KEY="sb_publishable_6ze3q32jYfJboSCeAkK1oQ_MaQYpehf";
-let filter="전체", supabaseClient=null, channel=null, activeBoss=null, soundOn=false;
+let filter="전체", supabaseClient=null, channel=null, activeBoss=null, soundOn=false, customBosses=[];
 let alarmVolume=Math.max(0,Math.min(100,Number(localStorage.getItem("zeus-alarm-volume")??50)));
 
 const $=id=>document.getElementById(id);
@@ -99,8 +101,9 @@ function toast(s){$("toast").textContent=s;$("toast").classList.add("show");setT
 function fmt(ms){if(ms<=0)return "출현 중";let s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=s%60;return [h,m,ss].map(v=>String(v).padStart(2,"0")).join(":")}
 function nextFixed(b,now=new Date()){
  const candidates=[];
- const days=[b.weekDay,b.secondDay].filter(x=>x!==undefined);
- for(let d=0;d<8;d++){const dt=new Date(now);dt.setDate(dt.getDate()+d);if(days.includes(dt.getDay())){dt.setHours(b.hour,0,0,0);if(dt>now)candidates.push(dt)}}
+ const days=b.fixedDays||[b.weekDay,b.secondDay].filter(x=>x!==undefined);
+ const parts=(b.fixedTime||String(b.hour||0).padStart(2,"0")+":00").split(":").map(Number);
+ for(let d=0;d<8;d++){const dt=new Date(now);dt.setDate(dt.getDate()+d);if(days.includes(dt.getDay())){dt.setHours(parts[0],parts[1]||0,0,0);if(dt>now)candidates.push(dt)}}
  return candidates.sort((a,b)=>a-b)[0]||null;
 }
 function nextDaily(b,now=new Date()){
@@ -108,6 +111,7 @@ function nextDaily(b,now=new Date()){
 }
 function nextFor(b,now=new Date()){
  const saved=states[b.id];
+ if(b.fixedDays?.length)return nextFixed(b,now);
  if(b.cycle&&saved){
   const first=new Date(saved), period=b.cycle*3600000;
   if(first>now)return first;
@@ -115,15 +119,15 @@ function nextFor(b,now=new Date()){
   return new Date(first.getTime()+passed*period);
  }
  if(saved&&new Date(saved)>now)return new Date(saved);
- if(b.type==="주간")return nextFixed(b,now);
+ if(b.type==="주간"||b.fixedDays?.length)return nextFixed(b,now);
  if(b.type==="일일")return nextDaily(b,now);
  return null;
 }
 function tag(b){return b.type==="주간"?"weekly":b.type==="일일"?"daily":""}
 function render(){
- const now=new Date();const list=BOSSES.map(b=>({...b,next:nextFor(b)})).filter(b=>filter==="전체"||b.type===filter).sort((a,b)=>(a.next?.getTime()??Infinity)-(b.next?.getTime()??Infinity));
+ const now=new Date();const allBosses=[...BOSSES,...customBosses];const list=allBosses.map(b=>({...b,next:nextFor(b)})).filter(b=>filter==="전체"||b.type===filter).sort((a,b)=>(a.next?.getTime()??Infinity)-(b.next?.getTime()??Infinity));
  const configured=list.filter(b=>b.next).sort((a,b)=>a.next-b.next);const first=configured[0];
- $("bossCount").textContent=BOSSES.length;
+ $("bossCount").textContent=BOSSES.length+customBosses.length;
  $("nextName").textContent=first?first.name:"시간 설정이 필요한 보스";
  $("nextMeta").textContent=first?`${first.type} · ${first.cycle?first.cycle+"시간 주기":"정기 출현"}`:"필드·인던 보스의 다음 젠 시각을 등록하세요";
  $("nextTimer").textContent=first?fmt(first.next-now):"--:--:--";
@@ -133,8 +137,8 @@ function render(){
   const ms=b.next?b.next-now:null, isReady=ms!==null&&ms<=0;
   const spawn=b.next?b.next.toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}):"시간 미설정";
   const countdown=ms===null?"--:--:--":fmt(ms);
-  const cycle=b.cycle?`${b.cycle}시간 자동 반복`:(b.type==="주간"?"정기 출현":"00시 · 12시 · 18시");
-  return `<article class="boss"><div><div class="boss-name">${b.name}<span class="tag ${tag(b)}">${b.type}</span></div><div class="boss-meta">${cycle}</div></div><div><div class="time-label">남은 시간</div><div class="timer ${isReady?"ready":""}">${countdown}</div></div><div><div class="time-label">다음 젠 시각</div><div style="font-size:12px;font-weight:700">${spawn}</div></div><div class="boss-actions">${b.type==="주간"||b.type==="일일"?`<span class="action-spacer"></span><button class="btn" data-set="${b.id}">시간 설정</button>`:`<button class="btn primary" data-cut="${b.id}">⚔ 컷 등록</button><button class="btn" data-set="${b.id}">시간 설정</button>`}</div></article>`;
+  const cycle=b.fixedDays?.length?"매주 "+b.fixedDays.map(d=>"일월화수목금토"[d]).join("·")+" "+b.fixedTime+" 고정젠":b.cycle?`${b.cycle}시간 자동 반복`:(b.type==="주간"?"정기 출현":b.type==="일일"?"00시 · 12시 · 18시":"직접 시간 설정");
+  return `<article class="boss"><div><div class="boss-name">${b.name}<span class="tag ${tag(b)}">${b.type}</span>${b.isInterBoss?'<span class="tag">인터보스</span>':""}</div><div class="boss-meta">${cycle}</div></div><div><div class="time-label">남은 시간</div><div class="timer ${isReady?"ready":""}">${countdown}</div></div><div><div class="time-label">다음 젠 시각</div><div style="font-size:12px;font-weight:700">${spawn}</div></div><div class="boss-actions">${b.type==="주간"||b.type==="일일"||b.fixedDays?.length?`<span class="action-spacer"></span><button class="btn" data-set="${b.id}">시간 설정</button>`:`<button class="btn primary" data-cut="${b.id}">⚔ 컷 등록</button><button class="btn" data-set="${b.id}">시간 설정</button>`}</div></article>`;
  }).join("")||'<div class="empty">표시할 보스가 없습니다.</div>';
 }
 async function writeState(id,iso){
@@ -145,32 +149,41 @@ if(supabaseClient){const {error}=await supabaseClient.from("boss_state").upsert(
 function calcAfterCut(b){
  const now=new Date();
  if(b.cycle)return new Date(now.getTime()+b.cycle*3600000);
- if(b.type==="주간")return nextFixed(b,now);
+ if(b.type==="주간"||b.fixedDays?.length)return nextFixed(b,now);
  if(b.type==="일일")return nextDaily(b,now);
  return null;
 }
-function openTime(id){activeBoss=BOSSES.find(b=>b.id===id);if(!activeBoss)return;$("modalBoss").value=activeBoss.name;const now=new Date(),current=nextFor(activeBoss)||new Date(now.getTime()+3600000);const totalMinutes=Math.max(0,Math.ceil((current.getTime()-now.getTime())/60000));$("modalHours").value=Math.floor(totalMinutes/60);$("modalMinutes").value=totalMinutes%60;updateDurationPreview();$("modalBack").classList.add("open")}
+function openTime(id){activeBoss=[...BOSSES,...customBosses].find(b=>b.id===id);if(!activeBoss)return;$("modalBoss").value=activeBoss.name;const now=new Date(),current=nextFor(activeBoss)||new Date(now.getTime()+3600000);const totalMinutes=Math.max(0,Math.ceil((current.getTime()-now.getTime())/60000));$("modalHours").value=Math.floor(totalMinutes/60);$("modalMinutes").value=totalMinutes%60;updateDurationPreview();$("modalBack").classList.add("open")}
 function updateDurationPreview(){const h=Math.max(0,Number($("modalHours").value)||0),m=Math.max(0,Number($("modalMinutes").value)||0);$("durationPreview").textContent=`현재 시각 기준 ${h}시간 ${m}분 뒤 출현`}
 $("modalHours").addEventListener("input",updateDurationPreview);$("modalMinutes").addEventListener("input",updateDurationPreview);
 function closeTime(){$("modalBack").classList.remove("open");activeBoss=null}
 $("bossList").addEventListener("click",e=>{
  const cut=e.target.closest("[data-cut]")?.dataset.cut,set=e.target.closest("[data-set]")?.dataset.set;
- if(cut){const b=BOSSES.find(x=>x.id===cut),next=calcAfterCut(b);if(next)writeState(cut,next.toISOString());else openTime(cut)}
+ if(cut){const b=[...BOSSES,...customBosses].find(x=>x.id===cut),next=calcAfterCut(b);if(next)writeState(cut,next.toISOString());else openTime(cut)}
  if(set)openTime(set);
 });
 $("filters").addEventListener("click",e=>{const f=e.target.closest("[data-filter]");if(!f)return;filter=f.dataset.filter;document.querySelectorAll(".chip").forEach(x=>x.classList.toggle("active",x===f));render()});
 $("saveModal").onclick=()=>{if(!activeBoss)return;const h=Number($("modalHours").value),m=Number($("modalMinutes").value);if(!Number.isInteger(h)||h<0||h>999||!Number.isInteger(m)||m<0||m>59){toast("시간은 0~999, 분은 0~59 사이의 정수로 입력하세요.");return}const next=new Date(Date.now()+(h*60+m)*60000);writeState(activeBoss.id,next.toISOString());closeTime()};
 $("cancelModal").onclick=closeTime;
+
+$("addBossBtn").onclick=()=>{$("newBossName").value="";$("newBossType").value="필드";$("newBossInter").checked=false;$("newBossFixed").checked=false;$("newBossDays").querySelectorAll("input").forEach(x=>x.checked=false);$("newBossTime").value="21:00";$("fixedOptions").style.display="none";$("addBossBack").classList.add("open")};
+$("newBossFixed").onchange=()=>{$("fixedOptions").style.display=$("newBossFixed").checked?"block":"none"};
+$("cancelAddBoss").onclick=()=>$("addBossBack").classList.remove("open");
+$("saveAddBoss").onclick=async()=>{const name=$("newBossName").value.trim(),type=$("newBossType").value,isFixed=$("newBossFixed").checked,days=[...$("newBossDays").querySelectorAll("input:checked")].map(x=>Number(x.value)),time=$("newBossTime").value;if(!name){toast("보스 이름을 입력하세요.");return}if(isFixed&&(!days.length||!time)){toast("고정젠 요일과 시간을 선택하세요.");return}if(customBosses.some(b=>b.name===name)||BOSSES.some(b=>b.name===name)){toast("이미 등록된 보스 이름입니다.");return}if(!supabaseClient){toast("공유 서버 연결 후 추가할 수 있습니다.");return}const id="custom-"+Date.now().toString(36);const row={id,name,type,fixed_days:isFixed?days:[],fixed_time:isFixed?time:null,is_inter_boss:$("newBossInter").checked};const {error}=await supabaseClient.from("boss_definitions").insert(row);if(error){toast("보스 추가 실패: "+error.message);return}customBosses.push({id,name,type,fixedDays:row.fixed_days,fixedTime:row.fixed_time,isInterBoss:row.is_inter_boss});$("addBossBack").classList.remove("open");render();toast("보스가 모든 접속자에게 추가됐습니다.")};
+
 async function connect(){
  try{
   if(!window.supabase)throw Error("Supabase 라이브러리를 불러오지 못했습니다.");
   supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
   const {data,error}=await supabaseClient.from("boss_state").select("*");if(error)throw error;
+  const {data:bossData,error:bossError}=await supabaseClient.from("boss_definitions").select("*");if(bossError)throw bossError;
+  customBosses=(bossData||[]).map(r=>({id:r.id,name:r.name,type:r.type,fixedDays:r.fixed_days||[],fixedTime:r.fixed_time,isInterBoss:r.is_inter_boss}));
   data.forEach(r=>{states[r.boss_id]=r.next_spawn_at});saveLocal();
   if(channel)await supabaseClient.removeChannel(channel);
   channel=supabaseClient.channel("boss-state-live").on("postgres_changes",{event:"*",schema:"public",table:"boss_state"},payload=>{
    const row=payload.new;if(row?.boss_id){states[row.boss_id]=row.next_spawn_at;saveLocal();render()}
   }).subscribe(status=>{if(status==="SUBSCRIBED"){$("connectionDot").classList.add("live");$("connectionText").textContent="실시간 공유 연결됨"}});
+  supabaseClient.channel("boss-definitions-live").on("postgres_changes",{event:"*",schema:"public",table:"boss_definitions"},async()=>{const {data}=await supabaseClient.from("boss_definitions").select("*");customBosses=(data||[]).map(r=>({id:r.id,name:r.name,type:r.type,fixedDays:r.fixed_days||[],fixedTime:r.fixed_time,isInterBoss:r.is_inter_boss}));render()}).subscribe();
   render();
  }catch(err){supabaseClient=null;$("connectionDot").classList.remove("live");$("connectionText").textContent="연결 실패";toast("공유 서버 연결 실패: "+(err.message||err))}
 }
