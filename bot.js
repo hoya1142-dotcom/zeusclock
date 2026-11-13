@@ -1,3 +1,5 @@
+process.env.FFMPEG_PATH = require("ffmpeg-static");
+
 const {
   Client,
   GatewayIntentBits,
@@ -87,8 +89,8 @@ function nextDaily(hours, now) {
 }
 
 function nextSpawn(boss, state, definition, now) {
-  const days = definition?.fixed_days?.length ? definition.fixed_days : boss.fixedDays;
-  const fixedTime = definition?.fixed_time || boss.fixedTime;
+  const days = definition ? (definition.fixed_days || []) : boss.fixedDays;
+  const fixedTime = definition ? definition.fixed_time : boss.fixedTime;
   if (days?.length) return nextWeekly(days, fixedTime, now);
   if (boss.dailyHours) return nextDaily(boss.dailyHours, now);
 
@@ -112,7 +114,6 @@ async function speak(text) {
     try {
       const url = googleTTS.getAudioUrl(line, { lang: "ko", slow: false, host: "https://translate.google.com" });
       const resource = createAudioResource(url, { inputType: StreamType.Arbitrary });
-      player.play(resource);
       await new Promise((resolve, reject) => {
         const onIdle = () => cleanup(resolve);
         const onError = (error) => cleanup(() => reject(error));
@@ -123,6 +124,7 @@ async function speak(text) {
         };
         player.once(AudioPlayerStatus.Idle, onIdle);
         player.once("error", onError);
+        player.play(resource);
       });
     } catch (error) {
       console.error("음성 안내 실패:", error.message);
@@ -167,7 +169,8 @@ async function checkBosses() {
   const definitionMap = new Map((definitions || []).map((row) => [row.id, row]));
   const now = new Date();
 
-  for (const boss of BOSSES) {
+  const customBosses = (definitions || []).filter((row) => row.id.startsWith("custom-")).map((row) => ({ id: row.id, name: row.name, fixedDays: row.fixed_days || [], fixedTime: row.fixed_time }));
+  for (const boss of [...BOSSES, ...customBosses]) {
     const next = nextSpawn(boss, stateMap.get(boss.id), definitionMap.get(boss.id), now);
     if (!next) continue;
     const remaining = next.getTime() - now.getTime();
