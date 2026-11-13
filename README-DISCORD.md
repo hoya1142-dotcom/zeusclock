@@ -7,8 +7,7 @@ The bot stays connected to one Discord voice channel and speaks Korean when a bo
 Set these as private environment variables in your bot host. Never commit tokens or secrets to GitHub.
 
 - `DISCORD_TOKEN`: Discord bot token
-- `DISCORD_GUILD_ID`: Discord server ID
-- `DISCORD_VOICE_CHANNEL_ID`: Voice channel ID where the bot should stay
+- `DISCORD_GUILD_ID` and `DISCORD_VOICE_CHANNEL_ID` are already set to the IDs supplied for this server/channel. Override them only if you change the destination.
 - `SUPABASE_URL`: `https://wpeqlhkidhtyrncixmxd.supabase.co`
 - `SUPABASE_ANON_KEY`: Supabase publishable/anon key used by the website
 
