@@ -85,7 +85,7 @@ const BOSSES = [
 ];
 const defaults = Object.fromEntries(BOSSES.map(b=>[b.id,null]));
 let states = {...defaults,...JSON.parse(localStorage.getItem("zeus-boss-states")||"{}")};
-let filter="전체", supabase=null, channel=null, activeBoss=null, soundOn=false;
+let filter="전체", supabaseClient=null, channel=null, activeBoss=null, soundOn=false;
 
 const $=id=>document.getElementById(id);
 function saveLocal(){localStorage.setItem("zeus-boss-states",JSON.stringify(states))}
@@ -121,7 +121,7 @@ function render(){
 }
 async function writeState(id,iso){
  states[id]=iso;saveLocal();render();
- if(supabase){const {error}=await supabase.from("boss_state").upsert({boss_id:id,next_spawn_at:iso,updated_at:new Date().toISOString()},{onConflict:"boss_id"});if(error)toast("공유 저장 실패: "+error.message);else toast("컷 시간이 모든 접속자에게 공유됐습니다.");}
+if(supabaseClient){const {error}=await supabaseClient.from("boss_state").upsert({boss_id:id,next_spawn_at:iso,updated_at:new Date().toISOString()},{onConflict:"boss_id"});if(error)toast("공유 저장 실패: "+error.message);else toast("컷 시간이 모든 접속자에게 공유됐습니다.");}
  else toast("내 브라우저에 저장됐습니다. 공유하려면 Supabase 연결이 필요합니다.");
 }
 function calcAfterCut(b){
@@ -147,15 +147,15 @@ $("connectBtn").onclick=connect;
 async function connect(){
  const url=$("sbUrl").value.trim(),key=$("sbKey").value.trim();if(!url||!key){toast("URL과 anon key를 입력하세요.");return}
  localStorage.setItem("zeus-sb-url",url);localStorage.setItem("zeus-sb-key",key);
- try{if(!window.supabase)throw Error("Supabase 라이브러리를 불러오지 못했습니다.");supabase=window.supabase.createClient(url,key);
-  const {data,error}=await supabase.from("boss_state").select("*");if(error)throw error;
+ try{if(!window.supabase)throw Error("Supabase 라이브러리를 불러오지 못했습니다.");supabaseClient=window.supabase.createClient(url,key);
+  const {data,error}=await supabaseClient.from("boss_state").select("*");if(error)throw error;
   data.forEach(r=>{states[r.boss_id]=r.next_spawn_at});saveLocal();
-  if(channel)await supabase.removeChannel(channel);
-  channel=supabase.channel("boss-state-live").on("postgres_changes",{event:"*",schema:"public",table:"boss_state"},payload=>{
+if(channel)await supabaseClient.removeChannel(channel);
+channel=supabaseClient.channel("boss-state-live").on("postgres_changes",{event:"*",schema:"public",table:"boss_state"},payload=>{
    const row=payload.new;if(row?.boss_id){states[row.boss_id]=row.next_spawn_at;saveLocal();render()}
   }).subscribe(status=>{if(status==="SUBSCRIBED"){$("connectionDot").classList.add("live");$("connectionText").textContent="실시간 공유 연결됨"}});
   $("settingsBack").classList.remove("open");render();toast("공유 서버에 연결했습니다.");
- }catch(err){supabase=null;$("connectionDot").classList.remove("live");$("connectionText").textContent="연결 실패";toast("연결 실패: "+(err.message||err))}
+ }catch(err){supabaseClient=null;$("connectionDot").classList.remove("live");$("connectionText").textContent="연결 실패";toast("연결 실패: "+(err.message||err))}
 }
 $("soundBtn").onclick=()=>{soundOn=!soundOn;$("soundBtn").textContent=soundOn?"🔔 알림 켜짐":"🔔 알림 켜기";if(soundOn){try{new AudioContext().resume()}catch(e){}toast("브라우저 알림 권한은 별도로 허용해야 합니다.")}};
 let alerted=new Set();
