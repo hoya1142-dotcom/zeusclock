@@ -172,7 +172,10 @@ async function connectVoice() {
     console.log(`음성 연결 상태: ${oldState.status} -> ${newState.status}`);
   });
   currentConnection.on("error", (error) => {
-    console.error("음성 연결 내부 오류:", error.message);
+    console.error("음성 연결 내부 오류:", error.stack || error.message);
+  });
+  currentConnection.on("debug", (message) => {
+    console.log("[VOICE DEBUG]", message);
   });
 
   // 최초 연결이 완료되기 전에는 재접속 감시가 연결을 끊지 않도록 합니다.
@@ -234,7 +237,7 @@ client.once("ready", async () => {
   try {
     await connectVoice();
   } catch (error) {
-    console.error("음성 채널 접속 실패:", error.message);
+    console.error("음성 채널 접속 실패:", error.stack || error.message);
     process.exit(1);
   }
 
