@@ -49,7 +49,7 @@
 </section>
 
 <section class="section">
- <div class="section-head"><div><h2>보스 현황</h2><div class="section-sub">가까운 출현 순으로 자동 정렬 · 컷 등록 시 다음 젠을 계산합니다</div></div>
+ <div class="section-head"><div><h2>보스 현황</h2><div class="section-sub">가까운 출현 순으로 자동 정렬 · 최초 출현시간 등록 후 주기에 맞춰 자동 반복됩니다</div></div>
  <div class="filters" id="filters"><button class="chip active" data-filter="전체">전체</button><button class="chip" data-filter="필드">필드</button><button class="chip" data-filter="인던">인던</button><button class="chip" data-filter="주간">주간</button><button class="chip" data-filter="일일">일일</button></div></div>
  <div class="boss-list" id="bossList"></div>
 </section>
@@ -101,7 +101,19 @@ function nextFixed(b,now=new Date()){
 function nextDaily(b,now=new Date()){
  const list=b.dailyHours.map(h=>{let d=new Date(now);d.setHours(h,0,0,0);if(d<=now)d.setDate(d.getDate()+1);return d}).sort((a,b)=>a-b);return list[0]||null;
 }
-function nextFor(b){if(states[b.id])return new Date(states[b.id]);if(b.type==="주간")return nextFixed(b);if(b.type==="일일")return nextDaily(b);return null}
+function nextFor(b,now=new Date()){
+ const saved=states[b.id];
+ if(b.cycle&&saved){
+  const first=new Date(saved), period=b.cycle*3600000;
+  if(first>now)return first;
+  const passed=Math.floor((now.getTime()-first.getTime())/period)+1;
+  return new Date(first.getTime()+passed*period);
+ }
+ if(saved&&new Date(saved)>now)return new Date(saved);
+ if(b.type==="주간")return nextFixed(b,now);
+ if(b.type==="일일")return nextDaily(b,now);
+ return null;
+}
 function tag(b){return b.type==="주간"?"weekly":b.type==="일일"?"daily":""}
 function render(){
  const now=new Date();const list=BOSSES.map(b=>({...b,next:nextFor(b)})).filter(b=>filter==="전체"||b.type===filter).sort((a,b)=>(a.next?.getTime()??Infinity)-(b.next?.getTime()??Infinity));
@@ -116,8 +128,8 @@ function render(){
   const ms=b.next?b.next-now:null, isReady=ms!==null&&ms<=0;
   const spawn=b.next?b.next.toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}):"시간 미설정";
   const countdown=ms===null?"--:--:--":fmt(ms);
-  const cycle=b.cycle?`${b.cycle}시간 젠`:(b.type==="주간"?"정기 출현":"00시 · 12시 · 18시");
-  return `<article class="boss"><div><div class="boss-name">${b.name}<span class="tag ${tag(b)}">${b.type}</span></div><div class="boss-meta">${cycle}</div></div><div><div class="time-label">남은 시간</div><div class="timer ${isReady?"ready":""}">${countdown}</div></div><div><div class="time-label">다음 젠 시각</div><div style="font-size:12px;font-weight:700">${spawn}</div></div><div class="boss-actions"><button class="btn primary" data-cut="${b.id}">⚔ 컷 등록</button><button class="btn" data-set="${b.id}">시간 설정</button></div></article>`;
+  const cycle=b.cycle?`${b.cycle}시간 자동 반복`:(b.type==="주간"?"정기 출현":"00시 · 12시 · 18시");
+  return `<article class="boss"><div><div class="boss-name">${b.name}<span class="tag ${tag(b)}">${b.type}</span></div><div class="boss-meta">${cycle}</div></div><div><div class="time-label">남은 시간</div><div class="timer ${isReady?"ready":""}">${countdown}</div></div><div><div class="time-label">다음 젠 시각</div><div style="font-size:12px;font-weight:700">${spawn}</div></div><div class="boss-actions">${b.type==="주간"||b.type==="일일"?`<button class="btn" data-set="${b.id}">시간 설정</button>`:`<button class="btn primary" data-cut="${b.id}">⚔ 컷 등록</button><button class="btn" data-set="${b.id}">시간 설정</button>`}</div></article>`;
  }).join("")||'<div class="empty">표시할 보스가 없습니다.</div>';
 }
 async function writeState(id,iso){
