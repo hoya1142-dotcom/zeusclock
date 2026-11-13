@@ -178,7 +178,7 @@ async function enableAlarm(){
   if(AudioCtx){if(!alarmAudio)alarmAudio=new AudioCtx();if(alarmAudio.state==="suspended")await alarmAudio.resume();}
   if("Notification"in window&&Notification.permission==="default")await Notification.requestPermission();
   if(!AudioCtx)throw new Error("이 브라우저는 오디오 재생을 지원하지 않습니다.");
-  soundOn=true;$("soundBtn").textContent="🔔 알림 켜짐";
+  soundOn=true;localStorage.setItem("zeus-alarm-enabled","true");$("soundBtn").textContent="🔔 알림 켜짐";
   playAlarm();speakAlarm("음성 알림 테스트입니다.");
   toast("알람과 음성 테스트를 재생했습니다.");
  }catch(e){toast("알림 설정을 확인해 주세요: "+e.message)}
@@ -204,11 +204,23 @@ function playAlarm(){
   osc.start(start+offset);osc.stop(start+offset+0.3);
  });
 }
-$("soundBtn").onclick=()=>{if(soundOn){soundOn=false;$("soundBtn").textContent="🔔 알림 켜기";toast("알림을 껐습니다.");}else enableAlarm();};
+$("soundBtn").onclick=()=>{if(soundOn&&alarmAudio&&alarmAudio.state==="running"){soundOn=false;localStorage.setItem("zeus-alarm-enabled","false");$("soundBtn").textContent="🔔 알림 켜기";toast("알림을 껐습니다.");}else enableAlarm();};
+async function restoreAlarmPreference(){
+ if(localStorage.getItem("zeus-alarm-enabled")!=="true")return;
+ const AudioCtx=window.AudioContext||window.webkitAudioContext;
+ if(!AudioCtx)return;
+ try{
+  alarmAudio=new AudioCtx();
+  await alarmAudio.resume();
+  soundOn=true;
+  $("soundBtn").textContent=alarmAudio.state==="running"?"🔔 알림 켜짐":"🔔 알림 켜짐 (소리 확인)";
+ }catch(e){soundOn=true;$("soundBtn").textContent="🔔 알림 켜짐 (소리 확인)";}
+ }
 let alerted=new Set(),alarmCooldownUntil=0;
 setInterval(()=>{render();if(soundOn){const now=Date.now();BOSSES.forEach(b=>{const t=nextFor(b);if(!t)return;const diff=t.getTime()-now;if(diff>0&&diff<=300000&&!alerted.has(b.id)&&now>=alarmCooldownUntil){alerted.add(b.id);alarmCooldownUntil=now+300000;playAlarm();speakAlarm(`${b.name}, 보스 출현 5분 전입니다.`);if("Notification"in window&&Notification.permission==="granted")new Notification(`${b.name} 5분 전입니다`)}if(diff>300000)alerted.delete(b.id)})}},1000);
 
 render();
 connect();
+restoreAlarmPreference();
 </script>
 </body></html>
