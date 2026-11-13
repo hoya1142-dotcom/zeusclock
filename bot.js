@@ -152,8 +152,24 @@ async function connectVoice() {
     selfDeaf: true,
     selfMute: false,
   });
-  voiceConnection.subscribe(player);
-  await entersState(voiceConnection, VoiceConnectionStatus.Ready, 30_000);
+  const currentConnection = voiceConnection;
+  currentConnection.subscribe(player);
+  currentConnection.on(VoiceConnectionStatus.Disconnected, async () => {
+    try {
+      await Promise.race([
+        entersState(currentConnection, VoiceConnectionStatus.Signalling, 5_000),
+        entersState(currentConnection, VoiceConnectionStatus.Connecting, 5_000),
+      ]);
+    } catch {
+      if (voiceConnection === currentConnection) {
+        console.warn("음성 연결이 끊겨 재접속을 시도합니다.");
+        currentConnection.destroy();
+        voiceConnection = null;
+        setTimeout(() => connectVoice().catch((error) => console.error("음성 재접속 실패:", error.message)), 5_000);
+      }
+    }
+  });
+  await entersState(currentConnection, VoiceConnectionStatus.Ready, 30_000);
   console.log(`음성 채널 접속 완료: ${channel.name}`);
 }
 
