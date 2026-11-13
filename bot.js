@@ -20,8 +20,8 @@ const { createClient } = require("@supabase/supabase-js");
 const googleTTS = require("google-tts-api");
 const { Readable } = require("node:stream");
 
-const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID || "581093050151993347";
-const DISCORD_VOICE_CHANNEL_ID = process.env.DISCORD_VOICE_CHANNEL_ID || "581093050571292685";
+const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID || "1542074750862364792";
+const DISCORD_VOICE_CHANNEL_ID = process.env.DISCORD_VOICE_CHANNEL_ID || "1569318254051332196";
 const required = ["DISCORD_TOKEN", "SUPABASE_URL", "SUPABASE_ANON_KEY"];
 for (const key of required) {
   if (!process.env[key]) {
