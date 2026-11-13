@@ -13,7 +13,7 @@
 :root{color-scheme:dark;--bg:#090d18;--panel:#111827;--panel2:#151f31;--line:#253249;--muted:#8b9ab3;--text:#edf3ff;--gold:#f2bd62;--cyan:#63d7df;--green:#69d6a5;--red:#ff8585;--shadow:0 18px 50px #0005}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -20%,#1b2b45 0%,transparent 48%),var(--bg);color:var(--text);font-family:Inter,"Noto Sans KR",sans-serif;min-height:100vh}
 .wrap{max-width:1180px;margin:auto;padding:28px 22px 60px}.top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:26px}
-.brand{display:flex;align-items:center;gap:13px}.logo{width:46px;height:46px;border-radius:15px;background:linear-gradient(145deg,#f5d18b,#a96a27);display:grid;place-items:center;color:#17120a;font-size:23px;font-weight:900;box-shadow:0 8px 25px #d89a3d30}.eyebrow{font-size:10px;letter-spacing:.25em;color:var(--gold);font-weight:800}.brand h1{font-size:21px;letter-spacing:.04em;margin:3px 0 0}.top-actions{display:flex;gap:9px;align-items:center}
+.brand{display:flex;align-items:center;gap:13px}.logo{width:46px;height:46px;border-radius:15px;background:linear-gradient(145deg,#f5d18b,#a96a27);display:grid;place-items:center;color:#17120a;font-size:23px;font-weight:900;box-shadow:0 8px 25px #d89a3d30}.eyebrow{font-size:10px;letter-spacing:.25em;color:var(--gold);font-weight:800}.brand h1{font-size:21px;letter-spacing:.04em;margin:3px 0 0}.top-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.volume-control{display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:#111b2a;color:var(--muted);font-size:11px}.volume-control input{width:82px;accent-color:var(--gold);cursor:pointer}.volume-value{min-width:30px;text-align:right;color:var(--text);font-variant-numeric:tabular-nums}
 .btn{border:1px solid var(--line);background:#172236;color:var(--text);border-radius:10px;padding:10px 13px;font-weight:700;cursor:pointer;font:inherit;font-size:12px;transition:.15s}.btn:hover{border-color:#647997;transform:translateY(-1px)}.btn.primary{background:linear-gradient(135deg,#f1c879,#c68a3b);color:#201608;border:0}.btn.ghost{background:transparent}.btn.danger{color:#ff9b9b}
 .status{display:inline-flex;align-items:center;gap:7px;color:var(--muted);font-size:11px}.dot{width:7px;height:7px;border-radius:50%;background:#e7ae5b;box-shadow:0 0 10px currentColor}.dot.live{background:var(--green)}
 .hero{display:grid;grid-template-columns:1.5fr .8fr;gap:16px;margin-bottom:18px}.hero-card,.side-card,.section{background:linear-gradient(145deg,#151f31,#101725);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
@@ -31,7 +31,7 @@
 <div class="wrap">
 <header class="top">
   <div class="brand"><div class="logo">Z</div><div><div class="eyebrow">OMAN · THE GOD</div><h1>ZEUS BOSS CLOCK</h1></div></div>
-  <div class="top-actions"><span class="status"><i class="dot" id="connectionDot"></i><span id="connectionText">로컬 미리보기</span></span><button class="btn ghost" id="soundBtn">🔔 알림 켜기</button></div>
+  <div class="top-actions"><span class="status"><i class="dot" id="connectionDot"></i><span id="connectionText">로컬 미리보기</span></span><div class="volume-control"><span>🔊</span><input id="volumeSlider" type="range" min="0" max="100" value="50" aria-label="알람 음량"><span class="volume-value" id="volumeValue">50%</span></div><button class="btn ghost" id="soundBtn">🔔 알림 켜기</button></div>
 </header>
 
 <section class="hero">
@@ -87,8 +87,11 @@ const defaults = Object.fromEntries(BOSSES.map(b=>[b.id,null]));
 let states = {...defaults,...JSON.parse(localStorage.getItem("zeus-boss-states")||"{}")};
 const SUPABASE_URL="https://wpeqlhkidhtyrncixmxd.supabase.co", SUPABASE_KEY="sb_publishable_6ze3q32jYfJboSCeAkK1oQ_MaQYpehf";
 let filter="전체", supabaseClient=null, channel=null, activeBoss=null, soundOn=false;
+let alarmVolume=Math.max(0,Math.min(100,Number(localStorage.getItem("zeus-alarm-volume")??50)));
 
 const $=id=>document.getElementById(id);
+$("volumeSlider").value=alarmVolume;$("volumeValue").textContent=alarmVolume+"%";
+$("volumeSlider").oninput=e=>{alarmVolume=Number(e.target.value);$("volumeValue").textContent=alarmVolume+"%";localStorage.setItem("zeus-alarm-volume",String(alarmVolume));};
 function saveLocal(){localStorage.setItem("zeus-boss-states",JSON.stringify(states))}
 function toast(s){$("toast").textContent=s;$("toast").classList.add("show");setTimeout(()=>$("toast").classList.remove("show"),2300)}
 function fmt(ms){if(ms<=0)return "출현 중";let s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=s%60;return [h,m,ss].map(v=>String(v).padStart(2,"0")).join(":")}
@@ -183,7 +186,7 @@ function speakAlarm(message){
  if(!("speechSynthesis"in window)||!("SpeechSynthesisUtterance"in window))return;
  window.speechSynthesis.cancel();
  const utterance=new SpeechSynthesisUtterance(message);
- utterance.lang="ko-KR";utterance.rate=1;utterance.pitch=1;utterance.volume=1;
+ utterance.lang="ko-KR";utterance.rate=1;utterance.pitch=1;utterance.volume=alarmVolume/100;
  window.speechSynthesis.speak(utterance);
 }
 function playAlarm(){
@@ -194,7 +197,7 @@ function playAlarm(){
   const osc=alarmAudio.createOscillator(),gain=alarmAudio.createGain();
   osc.type="sine";osc.frequency.setValueAtTime(880,start+offset);
   gain.gain.setValueAtTime(0.0001,start+offset);
-  gain.gain.exponentialRampToValueAtTime(0.22,start+offset+0.025);
+  gain.gain.exponentialRampToValueAtTime(0.22*(alarmVolume/100),start+offset+0.025);
   gain.gain.exponentialRampToValueAtTime(0.0001,start+offset+0.28);
   osc.connect(gain);gain.connect(alarmAudio.destination);
   osc.start(start+offset);osc.stop(start+offset+0.3);
