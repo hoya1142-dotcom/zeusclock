@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090d18">
+<title>ZEUS · Boss Clock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{color-scheme:dark;--bg:#090d18;--panel:#111827;--panel2:#151f31;--line:#253249;--muted:#8b9ab3;--text:#edf3ff;--gold:#f2bd62;--cyan:#63d7df;--green:#69d6a5;--red:#ff8585;--shadow:0 18px 50px #0005}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -20%,#1b2b45 0%,transparent 48%),var(--bg);color:var(--text);font-family:Inter,"Noto Sans KR",sans-serif;min-height:100vh}
+.wrap{max-width:1180px;margin:auto;padding:28px 22px 60px}.top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:26px}
+.brand{display:flex;align-items:center;gap:13px}.logo{width:46px;height:46px;border-radius:15px;background:linear-gradient(145deg,#f5d18b,#a96a27);display:grid;place-items:center;color:#17120a;font-size:23px;font-weight:900;box-shadow:0 8px 25px #d89a3d30}.eyebrow{font-size:10px;letter-spacing:.25em;color:var(--gold);font-weight:800}.brand h1{font-size:21px;letter-spacing:.04em;margin:3px 0 0}.top-actions{display:flex;gap:9px;align-items:center}
+.btn{border:1px solid var(--line);background:#172236;color:var(--text);border-radius:10px;padding:10px 13px;font-weight:700;cursor:pointer;font:inherit;font-size:12px;transition:.15s}.btn:hover{border-color:#647997;transform:translateY(-1px)}.btn.primary{background:linear-gradient(135deg,#f1c879,#c68a3b);color:#201608;border:0}.btn.ghost{background:transparent}.btn.danger{color:#ff9b9b}
+.status{display:inline-flex;align-items:center;gap:7px;color:var(--muted);font-size:11px}.dot{width:7px;height:7px;border-radius:50%;background:#e7ae5b;box-shadow:0 0 10px currentColor}.dot.live{background:var(--green)}
+.hero{display:grid;grid-template-columns:1.5fr .8fr;gap:16px;margin-bottom:18px}.hero-card,.side-card,.section{background:linear-gradient(145deg,#151f31,#101725);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+.hero-card{padding:24px 26px;position:relative;overflow:hidden}.hero-card:after{content:"";position:absolute;width:220px;height:220px;right:-50px;top:-95px;border:1px solid #e8b75c22;border-radius:50%;box-shadow:0 0 0 25px #e8b75c08,0 0 0 50px #e8b75c05}.kicker{color:var(--gold);font-size:10px;font-weight:800;letter-spacing:.2em}.hero-name{font-size:24px;font-weight:800;margin:10px 0 3px}.hero-sub{color:var(--muted);font-size:12px}.hero-time{font-size:clamp(34px,6vw,56px);font-weight:800;letter-spacing:.04em;font-variant-numeric:tabular-nums;margin:18px 0 14px}.hero-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.side-card{padding:20px;display:flex;flex-direction:column;justify-content:space-between}.side-label{font-size:11px;color:var(--muted)}.side-num{font-size:30px;font-weight:800;margin:8px 0}.side-note{font-size:11px;color:var(--muted);line-height:1.6}
+.section{padding:19px;margin-top:16px}.section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:15px}.section h2{font-size:15px;margin:0}.section-sub{font-size:11px;color:var(--muted);margin-top:5px}.filters{display:flex;gap:7px;flex-wrap:wrap}.chip{border:1px solid var(--line);background:#0e1624;color:var(--muted);border-radius:999px;padding:7px 11px;font-size:11px;cursor:pointer}.chip.active{background:#3a2c19;border-color:#9d7439;color:#f5d28e}
+.boss-list{display:grid;gap:9px}.boss{display:grid;grid-template-columns:minmax(150px,1.1fr) .75fr .75fr auto;gap:12px;align-items:center;padding:13px 14px;border:1px solid #26364e;background:#0e1726;border-radius:13px}.boss:hover{border-color:#52647f}.boss-name{font-size:13px;font-weight:800}.boss-meta{font-size:10px;color:var(--muted);margin-top:5px}.timer{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.02em}.timer.ready{color:var(--green)}.time-label{font-size:10px;color:var(--muted);margin-bottom:4px}.boss-actions{display:flex;gap:6px}.boss-actions .btn{padding:9px 11px}.tag{display:inline-block;font-size:9px;padding:4px 7px;border-radius:6px;background:#233248;color:#a9c4e7;margin-left:6px}.tag.weekly{background:#30264a;color:#c7b3ff}.tag.daily{background:#183a3c;color:#8de0d4}
+.empty{padding:28px;text-align:center;color:var(--muted);font-size:12px}
+.footer{color:#6f7d94;font-size:10px;text-align:center;margin:24px 0}
+.modal-back{position:fixed;inset:0;background:#03060bd9;display:none;align-items:center;justify-content:center;padding:18px;z-index:20}.modal-back.open{display:flex}.modal{width:min(480px,100%);background:#141e2f;border:1px solid #354761;border-radius:17px;padding:21px;box-shadow:0 25px 90px #000a}.modal h3{margin:0 0 8px;font-size:17px}.modal p{font-size:11px;color:var(--muted);line-height:1.6}.field{display:grid;gap:7px;margin:14px 0}.field label{font-size:11px;color:#aebbd0}.field input{width:100%;padding:12px;border-radius:9px;border:1px solid var(--line);background:#0b1320;color:var(--text);font:inherit}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;background:#20334a;border:1px solid #4a6585;border-radius:10px;padding:11px 15px;font-size:12px;z-index:30;transition:.2s;pointer-events:none}.toast.show{opacity:1;transform:translate(-50%,0)}
+.small{font-size:10px;color:var(--muted)}
+@media(max-width:760px){.wrap{padding:18px 13px 40px}.hero{grid-template-columns:1fr}.hero-card{padding:20px}.side-card{min-height:125px}.boss{grid-template-columns:1fr 1fr;gap:10px}.boss-actions{grid-column:1/-1}.boss-actions .btn{flex:1}.top{align-items:flex-start}.brand h1{font-size:17px}.top-actions .btn{padding:9px;font-size:10px}.section{padding:13px}.section-head{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div class="brand"><div class="logo">Z</div><div><div class="eyebrow">OMAN · THE GOD</div><h1>ZEUS BOSS CLOCK</h1></div></div>
+  <div class="top-actions"><span class="status"><i class="dot" id="connectionDot"></i><span id="connectionText">로컬 미리보기</span></span><button class="btn ghost" id="soundBtn">🔔 알림 켜기</button><button class="btn" id="settingsBtn">⚙ 설정</button></div>
+</header>
+
+<section class="hero">
+  <div class="hero-card">
+    <div class="kicker">NEXT RESPAWN</div>
+    <div class="hero-name" id="nextName">시간 설정이 필요한 보스</div>
+    <div class="hero-sub" id="nextMeta">젠 시각을 등록하면 자동으로 표시됩니다</div>
+    <div class="hero-time" id="nextTimer">--:--:--</div>
+    <div class="hero-foot"><span class="tag" id="nextState">대기 중</span><span class="small" id="nextAt">아직 등록된 출현 시간이 없습니다</span></div>
+  </div>
+  <div class="side-card">
+    <div><div class="side-label">TRACKED BOSSES</div><div class="side-num" id="bossCount">14</div><div class="side-note">필드 · 인던 · 주간 · 일일 보스<br>누구나 컷을 등록하면 모든 화면에 반영됩니다.</div></div>
+    <div class="small" style="margin-top:14px">기준 시간 · 한국 표준시 (KST)</div>
+  </div>
+</section>
+
+<section class="section">
+ <div class="section-head"><div><h2>보스 현황</h2><div class="section-sub">가까운 출현 순으로 자동 정렬 · 컷 등록 시 다음 젠을 계산합니다</div></div>
+ <div class="filters" id="filters"><button class="chip active" data-filter="전체">전체</button><button class="chip" data-filter="필드">필드</button><button class="chip" data-filter="인던">인던</button><button class="chip" data-filter="주간">주간</button><button class="chip" data-filter="일일">일일</button></div></div>
+ <div class="boss-list" id="bossList"></div>
+</section>
+<div class="footer">ZEUS BOSS CLOCK · 공유되는 컷 기록은 누구나 등록할 수 있습니다.</div>
+</div>
+
+<div class="modal-back" id="modalBack"><div class="modal"><h3 id="modalTitle">보스 시간 설정</h3><p id="modalDesc">게임에서 확인한 다음 출현 시각을 입력하세요. 입력한 시간은 모든 접속자에게 공유됩니다.</p><div class="field"><label>보스</label><input id="modalBoss" disabled></div><div class="field"><label>다음 출현 예정 시각</label><input type="datetime-local" id="modalTime"></div><div class="modal-actions"><button class="btn" id="cancelModal">취소</button><button class="btn primary" id="saveModal">저장</button></div></div></div>
+<div class="modal-back" id="settingsBack"><div class="modal"><h3>연결 설정</h3><p>여러 사람과 시간을 공유하려면 Supabase 프로젝트의 URL과 anon key를 입력해야 합니다. 이 값은 브라우저에 저장되며 service_role 키는 절대 입력하지 마세요.</p><div class="field"><label>Supabase Project URL</label><input id="sbUrl" placeholder="https://xxxx.supabase.co"></div><div class="field"><label>Supabase anon / publishable key</label><input id="sbKey" placeholder="eyJ... 또는 sb_publishable_..."></div><div class="modal-actions"><button class="btn" id="closeSettings">닫기</button><button class="btn primary" id="connectBtn">연결하기</button></div></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const BOSSES = [
+ {id:"chrysopagos",name:"크리소파고스",type:"필드",cycle:8},
+ {id:"amorpos",name:"아모르포스",type:"필드",cycle:8},
+ {id:"trason",name:"트라손",type:"필드",cycle:8},
+ {id:"alastor",name:"알라스토르",type:"필드",cycle:8},
+ {id:"vedix",name:"베딕스",type:"필드",cycle:8},
+ {id:"gotsis",name:"고트시스",type:"필드",cycle:8},
+ {id:"iocanthos",name:"이오칸토스",type:"필드",cycle:12},
+ {id:"kini",name:"키니 러우리",type:"필드",cycle:12},
+ {id:"tripok",name:"트리포크",type:"필드",cycle:12},
+ {id:"giant-hand",name:"거인의 세번째 손",type:"필드",cycle:12},
+ {id:"sealed-amorpos",name:"봉인된 아모르포스",type:"인던",cycle:8},
+ {id:"sealed-vdeles",name:"봉인된 브델레스",type:"인던",cycle:24},
+ {id:"argus",name:"아르고스",type:"주간",weekDay:1,hour:21},
+ {id:"medea",name:"메데이아",type:"주간",weekDay:2,hour:21},
+ {id:"arachne",name:"아라크네",type:"주간",weekDay:3,hour:21},
+ {id:"cerberus",name:"케르베로스",type:"주간",weekDay:5,hour:21},
+ {id:"chimera",name:"키메라",type:"주간",weekDay:6,hour:21},
+ {id:"skotolasma-front",name:"선봉의 스코톨라스마",type:"주간",weekDay:4,hour:21,secondDay:1},
+ {id:"skotolasma-fall",name:"함락의 스코톨라스마",type:"주간",weekDay:4,hour:21,secondDay:1},
+ {id:"abyss",name:"심연의 틈",type:"일일",dailyHours:[0,12,18]}
+];
+const defaults = Object.fromEntries(BOSSES.map(b=>[b.id,null]));
+let states = {...defaults,...JSON.parse(localStorage.getItem("zeus-boss-states")||"{}")};
+let filter="전체", supabase=null, channel=null, activeBoss=null, soundOn=false;
+
+const $=id=>document.getElementById(id);
+function saveLocal(){localStorage.setItem("zeus-boss-states",JSON.stringify(states))}
+function toast(s){$("toast").textContent=s;$("toast").classList.add("show");setTimeout(()=>$("toast").classList.remove("show"),2300)}
+function fmt(ms){if(ms<=0)return "출현 중";let s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=s%60;return [h,m,ss].map(v=>String(v).padStart(2,"0")).join(":")}
+function nextFixed(b,now=new Date()){
+ const candidates=[];
+ const days=[b.weekDay,b.secondDay].filter(x=>x!==undefined);
+ for(let d=0;d<8;d++){const dt=new Date(now);dt.setDate(dt.getDate()+d);if(days.includes(dt.getDay())){dt.setHours(b.hour,0,0,0);if(dt>now)candidates.push(dt)}}
+ return candidates.sort((a,b)=>a-b)[0]||null;
+}
+function nextDaily(b,now=new Date()){
+ const list=b.dailyHours.map(h=>{let d=new Date(now);d.setHours(h,0,0,0);if(d<=now)d.setDate(d.getDate()+1);return d}).sort((a,b)=>a-b);return list[0]||null;
+}
+function nextFor(b){if(states[b.id])return new Date(states[b.id]);if(b.type==="주간")return nextFixed(b);if(b.type==="일일")return nextDaily(b);return null}
+function tag(b){return b.type==="주간"?"weekly":b.type==="일일"?"daily":""}
+function render(){
+ const now=new Date();const list=BOSSES.map(b=>({...b,next:nextFor(b)})).filter(b=>filter==="전체"||b.type===filter).sort((a,b)=>(a.next?.getTime()??Infinity)-(b.next?.getTime()??Infinity));
+ const configured=list.filter(b=>b.next).sort((a,b)=>a.next-b.next);const first=configured[0];
+ $("bossCount").textContent=BOSSES.length;
+ $("nextName").textContent=first?first.name:"시간 설정이 필요한 보스";
+ $("nextMeta").textContent=first?`${first.type} · ${first.cycle?first.cycle+"시간 주기":"정기 출현"}`:"필드·인던 보스의 다음 젠 시각을 등록하세요";
+ $("nextTimer").textContent=first?fmt(first.next-now):"--:--:--";
+ $("nextState").textContent=first?(first.next<=now?"출현 중":"출현 예정"):"시간 미설정";
+ $("nextAt").textContent=first?first.next.toLocaleString("ko-KR"):"";
+ $("bossList").innerHTML=list.map(b=>{
+  const ms=b.next?b.next-now:null, isReady=ms!==null&&ms<=0;
+  const spawn=b.next?b.next.toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}):"시간 미설정";
+  const countdown=ms===null?"--:--:--":fmt(ms);
+  const cycle=b.cycle?`${b.cycle}시간 젠`:(b.type==="주간"?"정기 출현":"00시 · 12시 · 18시");
+  return `<article class="boss"><div><div class="boss-name">${b.name}<span class="tag ${tag(b)}">${b.type}</span></div><div class="boss-meta">${cycle}</div></div><div><div class="time-label">남은 시간</div><div class="timer ${isReady?"ready":""}">${countdown}</div></div><div><div class="time-label">다음 젠 시각</div><div style="font-size:12px;font-weight:700">${spawn}</div></div><div class="boss-actions"><button class="btn primary" data-cut="${b.id}">⚔ 컷 등록</button><button class="btn" data-set="${b.id}">시간 설정</button></div></article>`;
+ }).join("")||'<div class="empty">표시할 보스가 없습니다.</div>';
+}
+async function writeState(id,iso){
+ states[id]=iso;saveLocal();render();
+ if(supabase){const {error}=await supabase.from("boss_state").upsert({boss_id:id,next_spawn_at:iso,updated_at:new Date().toISOString()},{onConflict:"boss_id"});if(error)toast("공유 저장 실패: "+error.message);else toast("컷 시간이 모든 접속자에게 공유됐습니다.");}
+ else toast("내 브라우저에 저장됐습니다. 공유하려면 Supabase 연결이 필요합니다.");
+}
+function calcAfterCut(b){
+ const now=new Date();
+ if(b.cycle)return new Date(now.getTime()+b.cycle*3600000);
+ if(b.type==="주간")return nextFixed(b,now);
+ if(b.type==="일일")return nextDaily(b,now);
+ return null;
+}
+function openTime(id){activeBoss=BOSSES.find(b=>b.id===id);if(!activeBoss)return;$("modalBoss").value=activeBoss.name;const current=nextFor(activeBoss)||new Date(Date.now()+3600000);$("modalTime").value=new Date(current.getTime()-current.getTimezoneOffset()*60000).toISOString().slice(0,16);$("modalBack").classList.add("open")}
+function closeTime(){$("modalBack").classList.remove("open");activeBoss=null}
+$("bossList").addEventListener("click",e=>{
+ const cut=e.target.closest("[data-cut]")?.dataset.cut,set=e.target.closest("[data-set]")?.dataset.set;
+ if(cut){const b=BOSSES.find(x=>x.id===cut),next=calcAfterCut(b);if(next)writeState(cut,next.toISOString());else openTime(cut)}
+ if(set)openTime(set);
+});
+$("filters").addEventListener("click",e=>{const f=e.target.closest("[data-filter]");if(!f)return;filter=f.dataset.filter;document.querySelectorAll(".chip").forEach(x=>x.classList.toggle("active",x===f));render()});
+$("saveModal").onclick=()=>{if(!activeBoss)return;const v=$("modalTime").value;if(!v){toast("출현 시각을 입력하세요.");return}writeState(activeBoss.id,new Date(v).toISOString());closeTime()};
+$("cancelModal").onclick=closeTime;
+$("settingsBtn").onclick=()=>{$("settingsBack").classList.add("open");$("sbUrl").value=localStorage.getItem("zeus-sb-url")||"";$("sbKey").value=localStorage.getItem("zeus-sb-key")||""};
+$("closeSettings").onclick=()=>$("settingsBack").classList.remove("open");
+$("connectBtn").onclick=connect;
+async function connect(){
+ const url=$("sbUrl").value.trim(),key=$("sbKey").value.trim();if(!url||!key){toast("URL과 anon key를 입력하세요.");return}
+ localStorage.setItem("zeus-sb-url",url);localStorage.setItem("zeus-sb-key",key);
+ try{if(!window.supabase)throw Error("Supabase 라이브러리를 불러오지 못했습니다.");supabase=window.supabase.createClient(url,key);
+  const {data,error}=await supabase.from("boss_state").select("*");if(error)throw error;
+  data.forEach(r=>{states[r.boss_id]=r.next_spawn_at});saveLocal();
+  if(channel)await supabase.removeChannel(channel);
+  channel=supabase.channel("boss-state-live").on("postgres_changes",{event:"*",schema:"public",table:"boss_state"},payload=>{
+   const row=payload.new;if(row?.boss_id){states[row.boss_id]=row.next_spawn_at;saveLocal();render()}
+  }).subscribe(status=>{if(status==="SUBSCRIBED"){$("connectionDot").classList.add("live");$("connectionText").textContent="실시간 공유 연결됨"}});
+  $("settingsBack").classList.remove("open");render();toast("공유 서버에 연결했습니다.");
+ }catch(err){supabase=null;$("connectionDot").classList.remove("live");$("connectionText").textContent="연결 실패";toast("연결 실패: "+(err.message||err))}
+}
+$("soundBtn").onclick=()=>{soundOn=!soundOn;$("soundBtn").textContent=soundOn?"🔔 알림 켜짐":"🔔 알림 켜기";if(soundOn){try{new AudioContext().resume()}catch(e){}toast("브라우저 알림 권한은 별도로 허용해야 합니다.")}};
+let alerted=new Set();
+setInterval(()=>{render();if(soundOn&&"Notification"in window){const now=Date.now();BOSSES.forEach(b=>{const t=nextFor(b);if(!t)return;const diff=t.getTime()-now;if(diff>0&&diff<=180000&&!alerted.has(b.id)){alerted.add(b.id);if(Notification.permission==="granted")new Notification(`${b.name} 3분 전입니다`)}if(diff>180000)alerted.delete(b.id)})}},1000);
+if("Notification"in window&&Notification.permission==="default"){$("soundBtn").addEventListener("click",()=>Notification.requestPermission(),{once:true})}
+render();
+</script>
+</body></html>
